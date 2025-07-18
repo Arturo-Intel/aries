@@ -34,7 +34,16 @@ const cca = new msal.ConfidentialClientApplication(authConfig);
 // Middleware to check if user is logged in or if the session is not dead
 function checkSession(req, res, next) {
   if (!req.session || !req.session.accessToken) {
-    res.redirect('/logout');
+    // Destroy the session and clear the session cookie
+    req.session.destroy((err) => {
+      if (err) {
+        console.log('Error destroying session:', err);
+        res.status(500).send('Error ending session');
+      } else {
+        res.clearCookie('connect.sid'); // Clear the session cookie
+        res.redirect('/login');
+      }
+    });
   } else {
     next();
   }
@@ -42,10 +51,7 @@ function checkSession(req, res, next) {
 
 app.get('/', (req, res) => {
   if (req.session.accessToken) {
-    res.render('home', {
-        title: 'Home',
-        user: req.session.user
-    });
+    res.redirect('/dashboard');
   } else {
     res.redirect('/login');
   }
@@ -118,6 +124,21 @@ app.get('/userinfo', checkSession, async (req, res) => {
     });
 });
 
+app.get('/about', checkSession, async (req, res) => {
+    res.render('about', {
+        title: 'About',
+        user: req.session.user
+    });
+});
+
+app.get('/dashboard', checkSession, async (req, res) => {
+    res.render('dashboard', {
+        title: 'Dashboard',
+        user: req.session.user
+    });
+});
+
+
 app.get('/test', checkSession, async (req, res) => {
     res.render('test', {
         title: 'Test',
@@ -125,18 +146,7 @@ app.get('/test', checkSession, async (req, res) => {
     });
 });
 
-app.get('/logout', (req, res) => {
-     // Destroy the session and clear the session cookie
-    req.session.destroy((err) => {
-    if (err) {
-      console.log('Error destroying session:', err);
-      res.status(500).send('Error ending session');
-    } else {
-      res.clearCookie('connect.sid'); // Clear the session cookie
-      res.render('logout', { title: 'Session Ended', user: null }); // Render the end page
-    }
-  });
-});
+
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

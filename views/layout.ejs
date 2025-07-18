@@ -7,7 +7,7 @@
   <link href="/css/intel.css" rel="stylesheet" type="text/css" media="all">
   <link href="/css/aries.css" rel="stylesheet" type="text/css" media="all">
   <script src="/js/bootstrap.bundle.js"></script>
-  <link rel="icon" href="/img/logo-white-72px.svg" type="image/x-icon">
+  <link rel="icon" href="/img/aries-icon.svg" type="image/x-icon">
   <title>ARIES: <%= title %></title>
 </head>
 <body class="intel-body">
@@ -34,19 +34,17 @@
     </div>
   </nav>
 
-  <!-- Main Content -->
-  <div class="row mx-0">
-    <div class="col-sm px-0">
-        <div>
-            <%- body %>
-        </div>
-        <footer class="footer">
-        <!-- Footer Bar -->
-            <div class="container-fluid py-2 text-center intel-footer-bg-blue">
-                <span class="small">© Intel Corporation</span>
+    <div class="row mx-0">
+        <div class="col-sm px-0">
+            <div class="p-5 container">
+                <%- body %>
             </div>
-        </footer>
+            <footer class="footer">
+                <div class="container-fluid py-2 text-center intel-footer-bg-blue">
+                    <span class="small">© Intel Corporation</span>
+                </div>
+            </footer>
+        </div>
     </div>
-  </div>
 </body>
 </html>
