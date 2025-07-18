@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/bootstrap.css" type="text/css" media="all">
+  <link href="/css/intel.css" rel="stylesheet" type="text/css" media="all">
+  <link href="/css/aries.css" rel="stylesheet" type="text/css" media="all">
+  <script src="/js/bootstrap.bundle.js"></script>
+  <link rel="icon" href="/img/logo-white-72px.svg" type="image/x-icon">
+  <title>ARIES: <%= title %></title>
+</head>
+<body class="intel-body">
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg intel-navbar-bg">
+    <div class="container-fluid">
+        <a class="navbar-brand intel-navbar-brand d-flex align-items-center" href="/">
+            <img src="/img/logo-energyblue-white-72px.svg" alt="Logo" width="93" height="38" class="d-inline-block align-text-top">
+            <span class="fs-4 ms-2 intel-navbar-title d-none d-md-block">Analytical Resolution Interface for Engineering Support</span>
+        </a>
+
+        <div class="offcanvas intel-offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
+            <div class="offcanvas-header">
+            </div>
+            <div class="offcanvas-body">
+                <% if (user) { %>
+                <span class="navbar-text intel-navbar-text ms-auto d-none d-lg-block">
+                    <img src="<%= user.photoUrl %>" alt="" width="32" height="32" class="rounded-circle me-2">
+                    <%= user.name  %>
+                </span>
+                <% } %>
+            </div>
+        </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="row mx-0">
+    <div class="col-sm px-0">
+        <div>
+            <%- body %>
+        </div>
+        <footer class="footer">
+        <!-- Footer Bar -->
+            <div class="container-fluid py-2 text-center intel-footer-bg-blue">
+                <span class="small">© Intel Corporation</span>
+            </div>
+        </footer>
+    </div>
+  </div>
+</body>
+</html>
