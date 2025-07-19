@@ -1,10 +1,12 @@
-
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const msal = require('@azure/msal-node');
 const axios = require('axios');
 const authConfig = require('./authConfig');
 const ejsMate = require('ejs-mate');
+const db = require('./db'); 
+const tools = require('./tools');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -117,13 +119,6 @@ app.get('/redirect', async (req, res) => {
   }
 });
 
-app.get('/userinfo', checkSession, async (req, res) => {
-    res.render('userinfo', {
-        title: 'User Information',
-        user: req.session.user
-    });
-});
-
 app.get('/about', checkSession, async (req, res) => {
     res.render('about', {
         title: 'About',
@@ -132,12 +127,29 @@ app.get('/about', checkSession, async (req, res) => {
 });
 
 app.get('/dashboard', checkSession, async (req, res) => {
+    var form_data = {
+        datetime: tools.getDateTime(),
+        action: "Landing page",
+        username: req.session.user.email,
+        result: "OK"            
+    }
+    try {
+        const rows = await db.query('INSERT INTO activity_log SET ?', form_data)
+    } catch (err) {
+        console.error("Error save data: ", err)
+    }
     res.render('dashboard', {
         title: 'Dashboard',
         user: req.session.user
     });
 });
 
+app.get('/userinfo', checkSession, async (req, res) => {
+    res.render('userinfo', {
+        title: 'User Information',
+        user: req.session.user
+    });
+});
 
 app.get('/test', checkSession, async (req, res) => {
     res.render('test', {

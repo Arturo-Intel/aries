@@ -1,5 +1,5 @@
 // authConfig.js
-require('dotenv').config();
+
 const AZURE_CLIENTID = process.env.AZURE_CLIENTID;
 const AZURE_INSTANCE = process.env.AZURE_INSTANCE;
 const AZURE_TENANTID = process.env.AZURE_TENANTID;
