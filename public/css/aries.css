@@ -1,16 +1,7 @@
-.footer {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-}
+
 
 .made {
-    position: fixed;
-    bottom: 60px;
-    right: 20px;
-    width: 100px;
-    height: 50px;
-    background-color: transparent;
+ 
     display: flex;
     align-items: center;
     justify-content: center;
@@ -47,3 +38,271 @@
     cursor: pointer;
     text-decoration: none;
 }
+
+.aries-navigation{
+  position: fixed;
+  width: 100%;
+  padding-top: 5px;
+  padding-bottom: 3px;
+  left:10px;
+  background: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  
+}
+
+.aries-marco{
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  padding: 10px;
+  margin-top: 20px;
+  margin-left: 0px;
+  margin-right: 0px;
+}
+
+.aries-tab{
+  background: white;
+  border-radius: 0 15px 15px 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  padding: 10px;
+}
+
+.aries-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: small;
+}
+
+/* Table header styling */
+.aries-table th {
+  background-color: #0071C5; /* Intel blue */
+  color: #ffffff;
+  padding: 10px;
+  text-align: left;
+  border-bottom: 2px solid #005a9c; /* Darker shade for border */
+}
+
+/* Table row styling */
+.aries-table tr {
+  border-bottom: 1px solid #dddddd;
+}
+
+/* Table cell styling */
+.aries-table td {
+  padding: 5px;
+  color: #333333; /* Dark gray for text */
+}
+
+/* Alternate row styling for better readability */
+.aries-table tr:nth-child(even) {
+  background-color: #f9f9f9; /* Light gray for alternate rows */
+}
+
+/* Hover effect for rows */
+.aries-table tr:hover {
+  background-color: #e0e0e0; /* Slightly darker gray on hover */
+  cursor: pointer;
+}
+
+.icon-cell {
+  width: 40px; /* Set width to fit the icon */
+  height: 40px; /* Set height to fit the icon */
+}
+
+/* Define the keyframes for the animation */
+@keyframes highlight {
+    0%, 100% { background-color: var(--original-bg-color); }
+    50% { background-color: #ffeb3b; } 
+}
+
+/* Apply the animation to the row */
+.high-importance {
+  animation: highlight 2s infinite;
+}
+
+.custom-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #007bff;
+  border-radius: 4px;
+  display: inline-block;
+  cursor: pointer;
+  position: relative;
+}
+.custom-checkbox.checked::after {
+  content: '';
+  width: 12px;
+  height: 12px;
+  background-color: #007bff;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  border-radius: 2px;
+}
+
+#wrapper {
+  display: flex !important;
+  flex-direction: row !important;
+}
+
+#sidebar-wrapper {
+  position: fixed;
+  width: 60px;
+  top: 40%;
+  left: 1%;
+  transform: translateY(-50%);
+  border-radius: 20px; 
+  
+}
+
+#page-content-wrapper {
+  width: 90%;
+  padding-left: 70px;
+}
+
+.list-group-item {
+  text-align: center;
+  padding: 20px 0;
+  border: 0 !important;
+}
+
+.sidebar-heading {
+  text-align: center;
+  padding: 20px 0;
+  font-size: 24px;
+}
+
+.bg-intel {
+  background-color: rgb(var(--navbar-bg-color));
+  color: white;
+}
+
+footer {
+  width: 100%;
+  background-color: #f8f9fa;
+  text-align: center;
+}
+
+@media (max-height: 650px) { 
+  #sidebar-wrapper  {
+    width: 60px;
+    top: 100px;
+    left: 1%;
+    transform: none;
+  }
+}
+
+.rounded-list-group {
+  border-radius: 15px; 
+  overflow: hidden; /* Ensure child elements don't overflow the rounded corners */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.url-input {
+  display: none; 
+}
+
+.top-adjust{
+  padding-top: 40px;
+}
+
+#loading {
+  display: none; 
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 16px solid #f3f3f3;
+  border-top: 16px solid #3498db;
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.json-wrap {
+  white-space: pre-wrap; /* Preserve whitespace and wrap text */
+  word-wrap: break-word; /* Break long words */
+  border: 1px solid #ccc; /* Optional: add a border for visibility */
+  padding: 10px; /* Add padding for better appearance */
+  background-color: #f8f9fa; /* Light background for contrast */
+}
+
+.nav-tabs .nav-link {
+    box-shadow: -2px -4px 8px rgba(0, 0, 0, 0.1); 
+}
+
+.nav-tabs .nav-link.active {
+    box-shadow: -2px -4px 8px rgba(0, 0, 0, 0.2); 
+}
+
+.inline-span {
+    vertical-align: middle; /* Aligns elements vertically */
+}
+    .carousel-item a, video,  #videoWrapper {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .carousel-item {
+      align-items: center;
+      min-height: 400px;
+    }
+
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
+      background-color: rgba(0, 0, 0, 0.5);
+      border-radius: 50%;
+    }
+
+    .carousel-control-prev,
+    .carousel-control-next {
+      top: 50%;
+      transform: translateY(-50%);
+      filter: invert(1);
+    }
+
+    .spinner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .counter {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 1.2em;
+    }
+
+    .video-container {
+      position: relative;
+      width: 600px;
+      height: 400px;
+      
+    }
+
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }

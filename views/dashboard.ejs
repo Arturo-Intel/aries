@@ -1,8 +1,257 @@
 <% layout('layout') %>
-<a href="/about" class="floating-info" title="About">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10" fill="#0071C5"/>
-        <text x="12" y="16" font-size="12" text-anchor="middle" fill="#FFFFFF">i</text>
-    </svg>
-</a>
-<h1>Dashboard</h1>
+<div >
+  <div class="row gx-2 text-center">
+    <div class="col-md-3">
+      <div class="aries-marco">KPI 1</div></div>
+    <div class="col-md-3">
+      <div class="aries-marco">KPI 2</div></div>
+    <div class="col-md-3">
+      <div class="aries-marco">KPI 3</div></div>
+    <div class="col-md-3">
+      <div class="aries-marco">KPI 4</div></div>
+  </div>
+</div>
+
+<div id="maincontent"  class="aries-marco">
+  <div id="loading"></div>
+  <div id="main" class="url-input"> 
+    <div id="tools" >
+      <div class="row gx-2">
+        <div class="col-md-4">
+          <button id="urgentButton" class="btn btn-danger"  onclick="urgentCases()">Urgent Cases</button>
+        </div>
+        <div class="col-md-4">
+          <div class="input-group">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search...">
+          </div>
+        </div>
+        <div class="col-md-4">
+          
+            <div class="custom-checkbox" id="closedCheckbox"></div>
+            <span>Show Closed</span>
+            <!-- <div class="custom-checkbox checked" id="l4Checkbox"></div>
+            <span>L4</span>
+            <div class="custom-checkbox" id="l5Checkbox"></div>
+            <span>L5</span>-->
+          
+        </div>
+
+        <!-- <div class="col d-flex justify-content-center align-items-end" style="height: 100px;">
+          <div class="form-group">
+            <label for="PSEfilterDropdown">PSEs</label>
+            <select id="PSEfilterDropdown" class="form-control" onchange="filterTable('caseTable')"> 
+              <option value="All">All</option>
+              <option value="No PSEs involved">No PSEs involved</option>
+              <option value="Arturo-Intel">Arturo-Intel</option>
+              <option value="Felipe-Intel">Felipe-Intel</option>
+              <option value="Karen-Intel">Karen-Intel</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="col d-flex justify-content-center align-items-end" style="height: 100px;">
+          <div class="form-group ">
+            <label for="SentimentfilterDropdown">Sentiment</label>
+            <select id="SentimentfilterDropdown" class="form-control" onchange="filterTable('caseTable')"> 
+        <option value="All">All</option>
+        <option value="neutral">Neutral</option>
+        <option value="trending negative">Trending Negative</option>
+        <option value="strongly negative">Strongly Negative</option>
+            </select>
+          </div>
+        </div>
+
+
+        <div class="col d-flex justify-content-center align-items-end" style="height: 100px;">
+          <div class="form-group">
+            <label for="SEGfilterDropdown">Support Exp</label>
+            <select id="SEGfilterDropdown" class="form-control" onchange="filterTable('caseTable')"> 
+                  <option value="All">All</option>
+                  <option value="not applicable">Not found</option>
+                  <option value="needs improvement">Needs Improvement</option>
+                  <option value="ok">OK</option>
+                  <option value="average">Average</option>
+                  <option value="very good">Very Good</option>
+                  <option value="excellent">Excellent</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="col d-flex justify-content-center align-items-end" style="height: 100px;">
+          <button id="restartButton" class="btn btn-success"  onclick="restartFilters('caseTable')">restart</button>
+        </div>
+        -->
+
+
+      </div>
+    </div>
+    <div class="mt-3"><span id="nCases">0</span> Cases found.</div>
+    
+    <table id="caseTable" class="aries-table">
+      <thead>
+        <tr>
+          <th style="text-align: center;">Date Created</th>
+          <th style="text-align: center;" id="header-sentiment" onclick="sortTable('caseTable', 1, ['neutral', 'trending negative', 'strongly negative'])" data-sort="desc">Sentiment</th>      
+          <th id="header-title" onclick="restoreOriginalOrder('caseTable')" data-sort="desc" >Title</th>
+          <th style="text-align: center;">GPU</th>
+          <th style="text-align: center;">PSEs Involved</th>
+          <th style="text-align: center;">Owner</th>
+          <th id="header-SEG" onclick="sortTable('caseTable', 5, ['not applicable','needs improvement', 'ok', 'average', 'very good', 'excellent'])"  data-sort="asc" style="text-align: center;">Support Experience Grading</th>
+          <th style="text-align: center;" >Last Updated</th>
+        </tr>
+      </thead>
+      <tbody id="casebody">
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>
+
+  function getinfo(item){
+    if(item.ai_logs != "false") {
+      let display_i = 0;
+      item.ai_logs.displays.forEach(function(d, i) {
+        if(d.gpu.includes("Intel")){
+          display_i = i;
+        }
+      });
+      return [true,
+              item.ai_logs.displays[display_i].gpu,
+              item.ai_logs.cpu,
+              item.ai_logs.os,
+              item.ai_logs.displays[display_i].driver_version
+      ]
+    } else {
+      return [false,
+              item.ai_analysis.gpu,
+              item.ai_analysis.cpu,
+              item.ai_analysis.os_version,
+              item.ai_analysis.driver_version
+      ]
+    }
+  }
+
+  async function generateCasesTable() {
+    const loading = document.getElementById('loading');
+    const main = document.getElementById('main');
+    loading.style.display = 'block';
+    main.style.display = 'none';
+
+    await fetch('/dashboard/fetch/all') 
+      .then(response => response.json())
+      .then(data => {
+        cases = data;
+        loading.style.display = 'none';
+        main.style.display = 'block';
+      })
+      .catch(error => {
+        console.error('Error fetching cases:', error);
+        loading.style.display = 'none';
+        main.style.display = 'block';
+    });
+    
+    
+    let html = '';
+
+    cases.forEach(function(caseItem, i) {
+      let [ssu, gpu, cpu, os, driver] = getinfo(caseItem);
+      html += `<tr data-queue="" data-case-status="${caseItem.case_info.state}" data-id="${caseItem.case_info.number}" data-original-index="${i}" title="GPU: ${gpu}\nCPU: ${cpu}\nOS: ${os}\nDriver: ${driver}" onclick="redirectToPage('${caseItem.case_info.number}')">`;
+      html += `<td style="text-align: center;">${formatSQLDate(caseItem.case_info.created_at)}</td>`;
+      html += `<td style="text-align: center;"><p title="${caseItem.sentiment}">${caseItem.sentiment}</p></td>`;
+      html += `<td>${caseItem.ai_analysis.case_title}</td>`;
+      html += `<td>${gpu}`;
+      if(!ssu){
+        html += `<spam title="SSU log not found">❗</spam>`
+      }
+      html += `</td>`
+
+      html += `<td >`;
+      if (caseItem.pse_list[0] !== "No PSEs involved in the comments") {
+        html += `<ul>`;
+        caseItem.pse_list.forEach(function(pses) {
+          html += `<li>${pses}</li>`;
+        });
+        html += `</ul>`;
+      } else {
+        html += `<p>${caseItem.pse_list[0]}</p>`;
+      }
+
+      html += `</td>`;
+      html += `<td style="text-align: center;">${caseItem.owner}</td>`;
+      html += `<td style="text-align: center;">`;
+
+      const grading = caseItem.ai_feedback.support_exp_grading.toUpperCase();
+      let emoji = '';
+      let title = caseItem.ai_feedback.support_exp_grading;
+
+      switch (grading) {
+        case 'NEEDS IMPROVEMENT':
+          emoji = '🤕';
+          break;
+        case 'OK':
+          emoji = '🙂';
+          break;
+        case 'AVERAGE':
+          emoji = '😐';
+          break;
+        case 'VERY GOOD':
+          emoji = '😃';
+          break;
+        case 'EXCELLENT':
+          emoji = '🥳';
+          break;
+        default:
+          emoji = '❗';
+          title = 'Not applicable';
+      }
+
+      html += `<p title="${title}" style="font-size:xx-large">${emoji}</p>`;
+      html += `</td>`;
+      html += `<td>${formatSQLDate(caseItem.last_date)}</td>`;
+      html += `</tr>`;
+    });
+
+    document.getElementById('casebody').innerHTML = html;
+  }
+ 
+  document.addEventListener('DOMContentLoaded', async function() {
+    await generateCasesTable();
+    // highlightUrgentCases('caseTable');
+    // filterTable('caseTable');
+    showClosed('caseTable');
+  });
+  
+  document.getElementById('searchInput').addEventListener('keyup', function() {
+    var input = this.value.toLowerCase();
+    var rows = document.querySelectorAll('#casebody tr');
+
+    rows.forEach(function(row) {
+      var cells = row.querySelectorAll('td');
+      var match = false;
+
+      cells.forEach(function(cell) {
+        if (cell.textContent.toLowerCase().includes(input)) {
+          match = true;
+        }
+      });
+
+      if (match) {
+        showRow(row);
+      } else {
+        row.style.display = 'none';
+      }
+    });
+    countRows('caseTable');
+  });
+
+  document.getElementById('closedCheckbox').addEventListener('click', function() {
+    this.classList.toggle('checked');
+    showClosed('caseTable');
+  });
+
+  function redirectToPage(id) {
+    window.location.href = `/github/${id}`;
+  }
+  
+
+</script>

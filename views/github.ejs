@@ -1,0 +1,66 @@
+<script>
+
+    async function api_caseAnalyzer_call(url, method, headers, body){
+        try { 
+            
+            res = await fetch(url, {
+                method: method,
+                headers: headers,
+                body: body
+            });
+
+            if(!res.ok){
+                throw new Error(`HTTP error! status: ${res.status}`);
+            } 
+            console.log("[OK] caseAnalyzer api call: " + url)
+            return res.json();
+        } catch (error) {
+            
+            console.log("[caseAnalyzer API] " + error);
+            return {};
+        }
+        
+    }
+    
+    async function api_github_call(sufix) {
+        const api_url = 'https://api.github.com/repos/IGCIT/Intel-GPU-Community-Issue-Tracker-IGCIT/issues/';
+        const options = {
+            method: 'GET', 
+            headers: {
+                'Authorization': "token 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",
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        };
+        const url = api_url + sufix;
+        try {    
+            res = await fetch(url, options);
+            if(!res.ok){
+                throw new Error(`HTTP error! status: ${res.status}`);
+            } 
+            console.log("[OK] github api call: " + url)
+            return res.json();
+        } catch (error) {
+            console.log("[GitHub API] " + error);
+            return false;
+        }
+    }
+
+    (async function() {
+        let caseInfo = await api_github_call(<%= sufix %>);
+        let commentsInfo = await api_github_call(<%= sufix %>+"/comments");
+
+        // if (caseInfo && commentsInfo) { 
+            api_caseAnalyzer_call("/cerebro", 
+                "POST", 
+                {"Content-Type": "application/json"}, 
+                JSON.stringify ({
+                    "caseInfo": caseInfo, 
+                    "commentsInfo": commentsInfo,
+                    "num" : <%= sufix %>
+                })
+            );
+        // } else {
+        //     console.log("Github Case doesn't exists: "+ <%= sufix %>);
+        // }
+    })();
+</script>

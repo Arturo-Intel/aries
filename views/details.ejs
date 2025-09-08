@@ -1,0 +1,557 @@
+<% layout('layout') %>
+
+
+<div id="cases_nav" class="row aries-navigation">
+    <div class="col-4"><a href="/github/<%= data.github_num - 1 %>">Previous</a></div>
+    <div class="col-4 d-flex justify-content-center align-items-center"><a href="/dashboard">Dashboard</a></div>
+    <div class="col-4 text-end">
+        <% if (latest > data.github_num) {%>
+            <a href="/github/<%= data.github_num + 1 %>">Next</a> 
+        <% } %>
+    </div>
+</div>
+<div id="loading"></div>
+<div id="main" class="url-input top-adjust">
+
+    <div id="case_info" class="row aries-marco">
+        <div id="left" class="col-7">
+            <div class="fs-4 fw-bold"> <%= data.ai_analysis.case_title %> </div>
+            
+            <div>Submited by: <%= data.ai_analysis.username %> </div>
+            <div>Status: <%= data.case_info.state %> </div>
+
+            <div style="margin-top: 15px;">
+                <span style="margin-right: .5rem !important">URLs:</span>
+                <ul style="padding-left: .5rem !important" class="list-unstyled">
+                    <li class="d-flex align-items-center gap-2">
+                        <span>Github:</span>
+                        <a href="<%= data.case_info.html_url%>" target="_blank" rel="noopener noreferrer"><%= data.case_info.html_url%></a>
+                    </li>
+                    <li class="d-flex align-items-center gap-2">
+                        <span>ISVC:</span>
+                        <a href="<%= data.isvc_url%>" target="_blank" rel="noopener noreferrer"><%= data.isvc_url%></a>
+                        <input type="text" class="url-input form-control" value="<%= data.isvc_url%>" />
+                        <button class="url-input submit-btn" data-type="isvc">update</button>
+                        <button class="url-input cancel-btn">cancel</button>
+                        <button class="edit-btn">Edit</button>
+                    </li>
+                    <li class="d-flex align-items-center gap-2">
+                        <span>HSD:</span>
+                        <ul id="hsd-links" class="list-unstyled"></ul>
+                        <input type="text" class="url-input form-control" value="<%= data.hsd %>" />
+                        <button class="url-input submit-btn" data-type="hsd">update</button>
+                        <button class="url-input cancel-btn">cancel</button>
+                        <button class="edit-btn">Edit</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div id="right" class="col-5 ">
+            <div class="text-end"><button id="refresh_data">Update AI Analysis</button></div>
+            <div class="mt-3">
+                <div class="d-flex align-items-center justify-content-end"> 
+                    <span style="margin-right: .5rem !important">Owner:</span>
+                    <form id="ownerForm" action="/github/<%= data.github_num %>/update-owner" method="POST">
+                        <select style="margin-right: .5rem !important" name="selectedEmail" required>
+                            <option value="">Please select one...</option>
+                            <% pses.forEach(function(emailObj) { %>
+                                <option value="<%= emailObj.email %>" <%= emailObj.email === data.owner ? 'selected' : '' %>><%= emailObj.email %></option>
+                            <% }); %>
+                            <option value="Not Assigned">Not Assigned</option>
+                        </select>
+                        <button type="submit">update</button>
+                    </form>
+                </div>
+                <div class="d-flex flex-column justify-content-center align-items-center">
+                    <span id="sge_emoji" style="font-size: 5rem;"></span>
+                    <span>Support Grading Experience:</span>
+                    <span><%= data.ai_feedback.support_exp_grading %></span>
+                </div>
+            </div>
+        </div>        
+        
+    </div>
+
+    <div id="summary" class="row aries-marco">
+        <div class="col-8">
+            <p><strong>Summary:</strong> <br>
+            <%= data.ai_analysis.case_summary %></p>
+            <p><strong>Case fixed:</strong><br>
+            <%= data.ai_feedback.case_fixed%></p>
+
+        </div>
+        <div class="col-4">
+            <div>
+                <span class="inline-span"><strong>User System info</strong></span>
+                <span id="ssu-found" title="SSU log not found" class="url-input inline-span">❗</span>
+
+            </div>
+            <ul>
+                <div id="user-gpu">GPU:</div>
+                <div id="user-cpu">CPU:</div>
+                <div id="user-os">OS:</div>
+                <div id="user-driver">Driver:</div>
+            </ul>
+        </div>
+        
+    </div>
+
+    <div id="case_tabs" class="pt-3" >
+        <ul class="nav nav-tabs" id="caseTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="analysis-tab" data-bs-toggle="tab" data-bs-target="#analysis" type="button" role="tab" aria-controls="analysis" aria-selected="true">Case details</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab" aria-controls="logs" aria-selected="false">SSU analysis</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="sentiment-tab" data-bs-toggle="tab" data-bs-target="#sentiment" type="button" role="tab" aria-controls="sentiment" aria-selected="false">Sentiment</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pse-feedback-tab" data-bs-toggle="tab" data-bs-target="#pse_feedback" type="button" role="tab" aria-controls="pse_feedback" aria-selected="false">PSE Feedback</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="article-tab" data-bs-toggle="tab" data-bs-target="#article_helper" type="button" role="tab" aria-controls="article_helper" aria-selected="false">Article</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="HSD-tab" data-bs-toggle="tab" data-bs-target="#hsd_helper" type="button" role="tab" aria-controls="hsd_helper" aria-selected="false">HSD helper</button>
+            </li>
+        </ul>
+        <div class="tab-content aries-tab" id="caseTabsContent">
+            <div class="tab-pane fade show active" style="padding: 10px;" id="analysis" role="tabpanel" aria-labelledby="analysis-tab">
+                <div class="row ">
+                    <div class="col-6 "> 
+                        <span><strong>Main Pointers:</strong></span>
+                        <ul>
+                            <% data.ai_analysis.main_pointers.forEach(function(item) { %>
+                                <li><%= item %></li>
+                            <% }); %>
+                        </ul>
+                    </div>
+                    <div class="col-6 ">
+                        <span><strong>Steps to reproduce:</strong></span>
+                        <ul>
+                            <% data.ai_analysis.steps_reproduce.forEach(function(pointer) { %>
+                                <li><%= pointer %></li>
+                            <% }); %>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <span><strong>Questions:</strong></span>
+                    <ul>
+                        <% data.ai_analysis.questions.forEach(function(item) { %>
+                            <li><%= item %></li>
+                        <% }); %>
+                    </ul>
+                </div>
+                <div id="evidences-div">
+                    <span><strong>Evidences:</strong></span>
+                    <div class="counter" id="counter">Evidence 1 of 0</div>
+                    <div id="evidenceCarousel" class="carousel slide">
+                        <div class="carousel-inner" id="carouselContent">
+                        <!-- Carousel items will be dynamically added here -->
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#evidenceCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#evidenceCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+                </div>
+
+
+            </div>
+            <div class="tab-pane fade" style="padding: 10px;" id="logs" role="tabpanel" aria-labelledby="logs-tab">
+                <% if(data.ai_logs !== "false") {%>
+                <div class="row">
+                    <div class="col-6 ">
+                        <span>User System Details:</span>
+                        <ul>
+                            <div><span>MoBo: </span><%= data.ai_logs.mobo%></div>
+                            <div><span>BIOS: </span><%= data.ai_logs.bios%></div>
+                            <div><span>RAM: </span><%= data.ai_logs.ram%></div>
+                            <div>
+                                <span>Display:</span>
+                                <ul>
+                                <% data.ai_logs.displays.forEach(function(display) { %>
+                                    <li>
+                                        <span><strong><%= display.gpu %></strong></span>
+                                        <ul>
+                                            
+
+                                        <li><span>Location:<%= display.location %></span></li>
+                                        <li><span>Driver Version: <%= display.driver_version %></span></li>
+                                        <li><span>Resolution: <%= display.resolution %></span></li>
+                                        <li><span>Refresh Rate: <%= display.refresh_rate %></span></li>
+                                        </ul>
+                                    </li>
+                                <% }); %>
+                                </ul>
+                            </div>
+                        </ul>
+                    </div>
+                    <div class="col-6 ">
+                
+                        <span>Main Pointers: </span>
+                        <ul>
+                            <% data.ai_logs.summary.forEach(function(item) { %>
+                                <li><%= item %></li>
+                            <% }); %>
+                        </ul>
+                    </div>
+                </div>
+                <div class="row">
+
+                    <div class="col-6 ">
+                        <span>Recomendations: </span>
+                        <ul>
+                            <% data.ai_logs.recommendations.forEach(function(item) { %>
+                                <li><%= item %></li>
+                            <% }); %>
+                        </ul>
+                    </div>
+                    <div class="col-6 ">
+                        <span>Notes: </span>
+                        <ul>
+                            <% data.ai_logs.notes.forEach(function(item) { %>
+                                <li><%= item %></li>
+                            <% }); %>
+                        </ul>
+                    </div>
+                </div>  
+
+                <% }  else {%>
+                <div>NO SSU</div>
+                <% } %>
+                
+            </div>
+            <div class="tab-pane fade" style="padding: 10px;" id="sentiment" role="tabpanel" aria-labelledby="sentiment-tab">
+                <div><span><strong>Case Sentiment: </strong><%= data.ai_feedback.case_sentiment %></span></div>
+                <div><span><strong>Analysis :</strong><%=data.ai_feedback.sentiment_analysis%></span></div>
+                <div><span><strong>PSEs involved: </strong></span>
+                    <ul>
+                        <% data.ai_feedback.pses.forEach(function(item) { %>
+                            <li><%= item %></li>
+                        <% }); %>
+                    </ul>
+                </div>
+            </div>
+            <div class="tab-pane fade" style="padding: 10px;" id="pse_feedback" role="tabpanel" aria-labelledby="pse-feedback-tab">
+                <div><span><strong>Suport Experience Grading: </strong><%= data.ai_feedback.support_exp_grading %></span></div>
+
+                <div><span><strong>PSE Handeling: </strong><%= data.ai_feedback.pse_handling %></span></div>
+                <div><span><strong>STAR PSE: </strong><%= data.ai_feedback.star_pse %></span></div>
+            </div>
+            <div class="tab-pane fade" style="padding: 10px;" id="article_helper" role="tabpanel" aria-labelledby="article-helper-tab">
+                <p>Coming soon!</p>
+            </div>
+            <div class="tab-pane fade" style="padding: 10px;" id="hsd_helper" role="tabpanel" aria-labelledby="hsd-helper-tab">
+                <p>Coming soon!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- <div class="json-wrap aries-marco" >
+        <% JSON.stringify(data, null, 2) %>
+    </div>  -->
+</div>
+<script>
+
+    function extractYouTubeVideoId(url) {
+      const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+      const match = url.match(regex);
+      return match ? match[1] : null;
+    }
+
+    function checkVideoSource(url) {
+      const video = document.createElement('video');
+      const source = document.createElement('source');
+      source.src = url;
+      video.appendChild(source);
+
+      video.onloadeddata = function() {
+        console.log('The source contains a valid video.');
+      };
+
+      video.onerror = function() {
+        console.log('The source does not contain a valid video.');
+      };
+
+      // Fallback logic: If video doesn't play, assume it's not a valid video
+      setTimeout(() => {
+        if (!video.readyState) {
+          console.log('The source does not contain a valid video.');
+        }
+      }, 3000); // Adjust timeout as needed
+    }
+
+    const evidenceLinks = 
+    <%- JSON.stringify(data.ai_analysis.evidence) %>;
+    const carouselContent = document.getElementById('carouselContent');
+
+    const counter = document.getElementById('counter');
+    const totalItems = evidenceLinks.length;
+
+    if (totalItems == 0) {
+        document.getElementById('evidences-div').style.display = 'none';
+    }
+
+    evidenceLinks.forEach((link, index) => {
+      
+      const carouselItem = document.createElement('div');
+      carouselItem.className = 'carousel-item' + (index === 0 ? ' active' : '');
+
+      const spinner = document.createElement('div');
+      spinner.className = 'spinner';
+      carouselItem.appendChild(spinner);
+   
+
+      const img = new Image();
+      img.onload = function() {
+        // spinner.style.display = 'none';
+        img.style.maxWidth = '600px';
+   
+        img.style.height = 'auto';
+        
+        const anchor = document.createElement('a');
+        anchor.href = link;
+        anchor.target = '_blank';
+        anchor.rel = 'noopener noreferrer';
+        anchor.appendChild(img);
+
+        carouselItem.appendChild(anchor);
+       };
+
+      img.onerror = function() {
+        const video = document.createElement('video');
+        video.controls = true;
+        video.style.maxWidth = '600px';
+        video.style.height = 'auto';
+        const source = document.createElement('source');
+        source.src = link;
+        source.type = 'video/mp4'; 
+        video.appendChild(source);
+
+        video.onloadeddata = function() {
+            carouselItem.appendChild(video);
+        };
+        
+        setTimeout(() => {
+            if (!video.readyState) {
+                ytvideo = extractYouTubeVideoId(link);
+                if (ytvideo) {
+                    const ytWrapper = document.createElement('div');
+                    ytWrapper.id="videoWrapper";
+                    ytWrapper.className="video-container";
+                    
+                    const iframe = document.createElement('iframe');
+                    iframe.src = `https://www.youtube.com/embed/${ytvideo}`;
+                    iframe.frameBorder = '0';
+                    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media;  picture-in-picture';
+                    iframe.allowFullscreen = true;
+                    ytWrapper.appendChild(iframe);
+                    carouselItem.appendChild(ytWrapper);
+                    // spinner.style.display = 'none';
+                } else {
+                    
+                    const anchor = document.createElement('a');
+                    anchor.href = link;
+                    anchor.textContent = link;
+                    anchor.target = '_blank';
+                    anchor.rel = 'noopener noreferrer';
+                    carouselItem.appendChild(anchor);
+                    spinner.style.display = 'none';
+                }
+                
+            }
+        }, 3000); 
+
+        video.onerror = function() {
+        //   spinner.style.display = 'none';
+          const anchor = document.createElement('a');
+          anchor.href = link;
+          anchor.textContent = link;
+          anchor.target = '_blank';
+          anchor.rel = 'noopener noreferrer';
+          carouselItem.appendChild(anchor);
+        };
+      };
+      img.src = link;
+
+      carouselContent.appendChild(carouselItem);
+      
+    });
+
+    // Update the counter initially
+    counter.textContent = `1 of ${totalItems}`;
+
+    // Update the counter on slide change
+    document.getElementById('evidenceCarousel').addEventListener('slide.bs.carousel', function (event) {
+      const currentIndex = event.to + 1; 
+      counter.textContent = `${currentIndex} of ${totalItems}`;
+    });
+   
+    function getinfo(){
+        const item =  <%- JSON.stringify(data) %>;
+        if(item.ai_logs != "false") {
+            let display_i = 0;
+            item.ai_logs.displays.forEach(function(d, i) {
+                if(d.gpu.includes("Intel")){
+                display_i = i;
+                }
+        });
+            return [true,
+                    item.ai_logs.displays[display_i].gpu,
+                    item.ai_logs.cpu,
+                    item.ai_logs.os,
+                    item.ai_logs.displays[display_i].driver_version
+            ]
+        } else {
+            return [false,
+                    item.ai_analysis.gpu,
+                    item.ai_analysis.cpu,
+                    item.ai_analysis.os_version,
+                    item.ai_analysis.driver_version
+            ]
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const refresh_button = document.getElementById('refresh_data');
+        refresh_button.addEventListener('click', async function() {
+            loading.style.display = 'block';
+            main.style.display = 'none';
+            cases_nav.style.display ='none';
+            try {
+                const response = await fetch('/githubupdate/<%= data.github_num %>', {
+                    method: 'GET'
+                });
+                if (response.ok) {
+                    window.location.href = `/github/<%= data.github_num %>`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        const tabContent = document.querySelector('.tab-content');
+        const analysisTab = document.getElementById('analysis-tab');
+        analysisTab.addEventListener('click', function() {
+            tabContent.style.borderRadius = '0 10px 10px 10px'; // Change border-radius when Analysis tab is clicked
+        });
+
+        const tabs = document.querySelectorAll('.nav-link');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                if (tab !== analysisTab) {
+                    tabContent.style.borderRadius = '10px 10px 10px 10px'; // Reset border-radius for other tabs
+                }
+            });
+        });
+
+        const hsdData = "<%= data.hsd %>"; 
+        const hsdLinksContainer = document.getElementById('hsd-links');
+        const hsdItems = hsdData.split(',');
+        hsdItems.forEach(item => {
+            const trimmedItem = item.trim(); 
+            const listItem = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = `${trimmedItem}`;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = trimmedItem;
+
+            listItem.appendChild(link);
+            hsdLinksContainer.appendChild(listItem);
+        });
+
+        const cancel_buttons =  document.querySelectorAll('.cancel-btn');  
+        cancel_buttons.forEach(button => {
+            button.addEventListener('click', function() {
+
+                this.style.display = 'none'
+                this.previousElementSibling.style.display = 'none';
+                this.previousElementSibling.previousElementSibling.style.display = 'none';
+                this.previousElementSibling.previousElementSibling.previousElementSibling.style.display = 'block';
+                this.nextElementSibling.style.display = 'block'
+            });
+        });
+
+        const edit_buttons =  document.querySelectorAll('.edit-btn')
+        edit_buttons.forEach(button => {
+            button.addEventListener('click', function() {
+                this.previousElementSibling.style.display = 'block';
+                this.previousElementSibling.previousElementSibling.style.display = 'block';
+                this.previousElementSibling.previousElementSibling.previousElementSibling.style.display = 'block';
+                this.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.style.display = 'none';
+                this.style.display = 'none';
+            });
+        });
+
+        const submit_buttons = document.querySelectorAll('.submit-btn');
+        submit_buttons.forEach(button => {
+            button.addEventListener('click', async function() {
+                const type = this.getAttribute('data-type');
+                const inputField = this.previousElementSibling;
+                const url = inputField.value;
+
+                try {
+                    const response = await fetch('/github/<%= data.github_num %>/update-urls', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ type, url })
+                    });
+                    if (response.ok) {
+                        window.location.href = `/github/<%= data.github_num %>`;
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+        });
+
+        const grading = "<%= data.ai_feedback.support_exp_grading.toUpperCase() %>";
+        let emoji = '';
+        let title = "<%= data.ai_feedback.support_exp_grading%>"
+
+        switch (grading) {
+            case 'NEEDS IMPROVEMENT':
+            emoji = '🤕';
+            break;
+            case 'OK':
+            emoji = '🙂';
+            break;
+            case 'AVERAGE':
+            emoji = '😐';
+            break;
+            case 'VERY GOOD':
+            emoji = '😃';
+            break;
+            case 'EXCELLENT':
+            emoji = '🥳';
+            break;
+            default:
+            emoji = '❗';
+            title = 'Not applicable';
+        }
+
+        let [ssu, gpu, cpu, os, driver] = getinfo();
+        if(!ssu){
+            document.getElementById('ssu-found').style.display ='inline-block';
+        }
+        document.getElementById('user-gpu').innerHTML = "GPU: " + gpu;
+        document.getElementById('user-cpu').innerHTML = "CPU: " + cpu;
+        document.getElementById('user-os').innerHTML = "OS: " + os;
+        document.getElementById('user-driver').innerHTML = "Driver: " + driver;
+        document.getElementById('sge_emoji').innerHTML=emoji;
+        document.getElementById('sge_emoji').title =title;
+
+        main.style.display = 'block';
+    });
+</script>
+
