@@ -247,7 +247,7 @@ app.get('/dashboard', checkSession, async (req, res) => {
  async function api_github_call(id) {
     const api_url = 'https://api.github.com/repos/IGCIT/Intel-GPU-Community-Issue-Tracker-IGCIT/issues/';
     const headers = {
-            'Authorization': "token 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",
+            'Authorization': process.env.GITHUB_TOKEN,
             'Accept': 'application/vnd.github.v3+json'
           };
     const url = api_url + id;
