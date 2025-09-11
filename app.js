@@ -13,18 +13,19 @@ const bodyParser = require('body-parser');
 const { Writable } = require('stream');
 
 const { HttpsProxyAgent } = require('https-proxy-agent');
-const proxyAgent = new HttpsProxyAgent('http://proxy-chain.intel.com:911');
+const proxyAgent = new HttpsProxyAgent('http://proxy-chain.intel.com:912');
 
 
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-
+//app.set('trust proxy', 1);
 
 // Set EJS as the template engine
 app.engine('ejs', ejsMate);
 app.set('view engine', 'ejs');
+app.set('views', __dirname + '/views');
 
 // Serve static files from the public directory
 app.use(express.static('public'));
@@ -34,11 +35,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Set up session middleware
 app.use(session({
-  secret: 'your_secret_key', // Replace with a strong secret key
+  secret: 'aries_secret_key_5', // Replace with a strong secret key
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production', // Set to true if using HTTPS
+    secure: false,
     httpOnly: true, // Prevent client-side JavaScript from accessing the cookie
     maxAge: 3600000 // Set session expiration to 1 hour (in milliseconds)
   } 
@@ -243,19 +244,15 @@ app.get('/dashboard', checkSession, async (req, res) => {
     });
 });
 
-app.get('/githubupdate/:id', async (req, res) => {
-  let id = req.params.id;
-
-   
-  async function api_github_call(id) {
+ async function api_github_call(id) {
     const api_url = 'https://api.github.com/repos/IGCIT/Intel-GPU-Community-Issue-Tracker-IGCIT/issues/';
     const headers = {
-            'Authorization': "token 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",
+            'Authorization': "token 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",
             'Accept': 'application/vnd.github.v3+json'
           };
     const url = api_url + id;
     try {    
-        const res2 = await axios.get(url, { httpsAgent: proxyAgent, headers: headers});
+        const res2 = await axios.get(url, {httpsAgent: proxyAgent,  headers: headers});
         console.log("[OK] github api call: " + url)
         return res2.data;
     } catch (error) {
@@ -264,8 +261,18 @@ app.get('/githubupdate/:id', async (req, res) => {
     }
   }
 
+
+app.get('/githubupdate/:id', async (req, res) => {
+  let id = req.params.id;
   let caseInfo = await api_github_call(id);
   let commentsInfo = await api_github_call(id + "/comments")
+
+if(!caseInfo || !commentsInfo) {
+//  const err = new Error('Something went wrong!');
+//  err.status = 500; 
+//  next(err); 
+res.status(500).render('error', {error:  new Error("Github Case "+id +" doesn't exists!")});
+}else {
 
   try {
     data = JSON.stringify({
@@ -282,41 +289,23 @@ app.get('/githubupdate/:id', async (req, res) => {
         body: data
     });
 
-    if (response.ok) {
+   if (response.ok) {
       res.redirect('/github/'+id);
     } else {
-      res.redirect("/dashboard");
-      res.status(response.status).send('Error processing request');
+      //res.redirect("/dashboard");
+      res.status(500).send('error');
     }
 
   } catch (e) {
     console.error('Error:', e);
-    res.status(500).send('Internal server error');    
+    res.status(500).send('Internal server error');
   }
+}
 });
 
 app.post('/cerebro', async (req, res) => {
   const dateTime = tools.getDateTime();
-  
-  if(!req.body.caseInfo) {
-    console.log("No existe " + req.body.num)
-    console.log("-fin");
-    return
-  }
 
-  console.log('[CASO '+ req.body.caseInfo.number + ']')
-  let igptToken = false;
-  let caseAnalysis = false;
-  let githubPrompt = false;
-  let sentimentPrompt = false;
-  let ssuPrompt = false;
-  let logPrompt = false;
-  let dxPrompt = false;
-
-  // Input for case and comments
-  const inputCase = "User: "+ req.body.caseInfo.user.login + " Case Number: "+ req.body.caseInfo.number + " Title: "+ req.body.caseInfo.title + "\n" + req.body.caseInfo.body;
-  const inputComments = "Case description: " + req.body.caseInfo.body + " Comments: " + JSON.stringify(req.body.commentsInfo);
- 
 
   // Get prompts for db
   async function getPrompts(){
@@ -333,6 +322,7 @@ app.post('/cerebro', async (req, res) => {
         console.error("Error getting prompt: ", err)
     }
   }
+
   // get iGPT token
   async function getTokeniGPT(){
     try {
@@ -353,6 +343,7 @@ app.post('/cerebro', async (req, res) => {
         console.log('[CASO '+ req.body.caseInfo.number + '] > [ERROR] token > ' + err)
     }
   }
+
   // get SSU url from github data
   async function findSSUpath(context) {
       console.log('[CASO '+ req.body.caseInfo.number + '] > [FINDSSU]')
@@ -374,7 +365,6 @@ app.post('/cerebro', async (req, res) => {
       const delimiter = '...#SSU#...';
       console.log('[CASO '+ req.body.caseInfo.number + '] > [SSUraw]')
       const response = await axios.get(ssuURL, { httpsAgent: proxyAgent, responseType: 'stream' });
-      
       const partsArray = [];
       let buffer = '';
 
@@ -414,7 +404,20 @@ app.post('/cerebro', async (req, res) => {
     }
   }
 
-  
+  console.log('[CASO '+ req.body.caseInfo.number + ']')
+  let igptToken = false;
+  let caseAnalysis = false;
+  let githubPrompt = false;
+  let sentimentPrompt = false;
+  let ssuPrompt = false;
+  let logPrompt = false;
+  let dxPrompt = false;
+
+  // Input for case and comments
+  const inputCase = "User: "+ req.body.caseInfo.user.login + " Case Number: "+ req.body.caseInfo.number + " Title: "+ req.body.caseInfo.title + "\n" + req.body.caseInfo.body;
+  const inputComments = "Case description: " + req.body.caseInfo.body + " Comments: " + JSON.stringify(req.body.commentsInfo);
+ 
+
   await getPrompts();
   // ssu prompt
   ssuURL = await findSSUpath(inputCase)
@@ -499,6 +502,7 @@ app.post('/cerebro', async (req, res) => {
   }
   console.log('[CASO '+ req.body.caseInfo.number + '] -fin' );
   res.status(200).send('Processed successfully');
+
 });
 
 app.get('/github/:id', checkSession, async (req, res) => {
@@ -605,12 +609,19 @@ app.get('/userinfo', checkSession, async (req, res) => {
     });
 });
 
-app.get('/test', checkSession, async (req, res) => {
+app.get('/old_test', checkSession, async (req, res) => {
     res.render('test', {
         title: 'Test',
         user: req.session.user
     });
 });
+
+app.use((err, req, res, next) => {
+  console.log(">>>> e "+ err);
+  res.status(err.status || 500);
+  res.render('error', { error: err });
+});
+
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

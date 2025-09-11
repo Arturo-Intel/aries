@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Error</title>
+    <meta http-equiv="refresh" content="5; url=/" />
+  </head>
+  <body>
+    <h1>Error <%= error.status || 500 %></h1>
+    <p><%= error.message %></p>
+    <% if (error.stack) { %>
+      <pre><%= error.stack %></pre>
+    <% } %>
+    <p>You will be redirected to <a href="/">Dashboard</a> in 5 seconds.</p>
+    <script>
+      setTimeout(function() {
+        window.location.href = "/dashboard";
+      }, 5000);
+    </script>
+  </body>
+</html>
+
