@@ -174,7 +174,14 @@ app.get('/redirect', async (req, res) => {
     
     const [isadmin, fisadmin] = await db.query('SELECT CASE WHEN COUNT(*) > 0 THEN \'TRUE\' ELSE \'FALSE\' END AS isAdmin FROM vip_list WHERE username = ?;', userInfo.data.mail)
 
+    const [userExists, fue] = await db.query('SELECT EXISTS ( SELECT 1 FROM pses WHERE email = ?) AS email_exists;', [userInfo.data.mail])
+    
+    if(!userExists[0]['email_exists']){
+      await db.query('INSERT INTO pses (email, github, type) VALUES (?,?,?);',[userInfo.data.mail, '', 'L1'])
+    }
+
     const [userExtraInfo, fxtraInfo] = await db.query('SELECT * FROM pses WHERE email = ?', userInfo.data.mail)
+
     // Store user information in session
     req.session.user = {
         wwid: userInfo.data.jobTitle, 
@@ -194,7 +201,15 @@ app.get('/redirect', async (req, res) => {
   }
 });
 
+async function updatePSEInfo(req){
+  const [userExtraInfo, fxtraInfo] = await db.query('SELECT * FROM pses WHERE email = ?', req.session.user.email)
+  req.session.user.githubAlias = userExtraInfo[0].github;
+  req.session.user.type = userExtraInfo[0].type;
+  req.session.save();
+}
+
 app.get('/about', checkSession, async (req, res) => {
+    await updatePSEInfo(req);
     res.render('about', {
         title: 'About',
         user: req.session.user
@@ -237,6 +252,7 @@ app.get('/dashboard', checkSession, async (req, res) => {
 
     // });
 
+    await updatePSEInfo(req);
 
     res.render('dashboard', {
         title: 'Dashboard', 
@@ -555,13 +571,6 @@ app.post('/github/:id/update-urls', async (req, res) => {
   res.status(200).send('URL updated successfully');
 });
 
-app.post('/users/githubalias/:id', async (req, res) => {
-  const github_alias = req.body.new_value;
-  const user_id = parseInt(req.params.id, 10);
-  await db.query('UPDATE pses SET github = ? WHERE id = ?', [github_alias, user_id ]);
-  res.status(200).send('Github alias updated successfully');
-});
-
 app.get('/dashboard/fetch/all', checkSession, async (req, res) => {
   let [rows, f] = [null, null]
   const [userExtraInfo, fxtraInfo] = await db.query('SELECT * FROM pses WHERE email = ?', req.session.user.email)
@@ -569,7 +578,21 @@ app.get('/dashboard/fetch/all', checkSession, async (req, res) => {
   if(userExtraInfo[0].type == 'admin') {
     [rows, f] = await db.query('SELECT * FROM cases ORDER BY github_num DESC;')
   } else {
-    [rows, f] = await db.query('SELECT * FROM cases WHERE pse_list LIKE \'%'+userExtraInfo[0].github+'%\' OR pse_list LIKE \'%No PSEs involved in the comments%\' OR owner = ? OR owner = ? ORDER BY github_num DESC;', [req.session.user.email, ""])
+    [rows, f] = 
+      await db.query(
+        `SELECT * FROM cases
+        WHERE JSON_CONTAINS(pse_list, ?) 
+        OR pse_list LIKE ? 
+        OR owner = ? 
+        OR owner = ?
+        ORDER BY github_num DESC;`,
+        [
+          JSON.stringify([userExtraInfo[0].github]),
+          '%No PSEs involved in the comments%',
+          req.session.user.email,
+          ""
+        ]
+      );
   }
   
   rows.forEach((row, i) => {
@@ -588,13 +611,8 @@ app.get('/dashboard/fetch/all', checkSession, async (req, res) => {
 
 app.get('/dashboard/fetch/:id', checkSession, async (req, res) => {
   let id = req.params.id;
-  let [rows, f] = [null, null]
-  if(req.session.user.extra == 'TRUE') {
-    [rows, f] = await db.query('SELECT * FROM cases ORDER BY github_num DESC WHERE github_num = ?;', id)
-  } else {
-    [rows, f] = await db.query('SELECT * FROM cases WHERE pse_list LIKE \'%'+req.session.user.givenName+'%\' OR pse_list LIKE \'%No PSEs involved in the comment%\' ORDER BY github_num DESC WHERE github_num = ?;', id)
-  }
-  
+  let [rows, f] = await db.query('SELECT * FROM cases ORDER BY github_num DESC WHERE github_num = ?;', id)
+    
   rows.forEach((row, i) => {
 
     row.ai_analysis =  row.ai_analysis !== undefined ? JSON.parse(row.ai_analysis) : "{}"
@@ -611,11 +629,20 @@ app.get('/dashboard/fetch/:id', checkSession, async (req, res) => {
 app.get('/userinfo', checkSession, async (req, res) => {
 
   const [rows, f] = await db.query('SELECT * FROM pses WHERE email = ?;', req.session.user.email);
+  await updatePSEInfo(req);
+
   res.render('userinfo', {
       title: 'User Information',
       user: req.session.user,
       pse: rows[0]
   });
+});
+
+app.post('/users/githubalias/:id', async (req, res) => {
+  const github_alias = req.body.new_value;
+  const user_id = parseInt(req.params.id, 10);
+  await db.query('UPDATE pses SET github = ? WHERE id = ?', [github_alias, user_id ]);
+  res.status(200).send('Github alias updated successfully');
 });
 
 app.get('/old_test', checkSession, async (req, res) => {
@@ -625,12 +652,10 @@ app.get('/old_test', checkSession, async (req, res) => {
     });
 });
 
-app.use((err, req, res, next) => {
-  console.log(">>>> e "+ err);
-  res.status(err.status || 500);
-  res.render('error', { error: err });
+app.use((req, res, next) => {
+  res.locals.user = req.session.user;
+  next();
 });
-
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
