@@ -571,30 +571,26 @@ app.post('/github/:id/update-urls', async (req, res) => {
   res.status(200).send('URL updated successfully');
 });
 
-app.get('/dashboard/fetch/all', checkSession, async (req, res) => {
-  let [rows, f] = [null, null]
-  const [userExtraInfo, fxtraInfo] = await db.query('SELECT * FROM pses WHERE email = ?', req.session.user.email)
-
-  if(userExtraInfo[0].type == 'admin') {
-    [rows, f] = await db.query('SELECT * FROM cases ORDER BY github_num DESC;')
+app.get('/dashboard/fetch-all/:status', checkSession, async (req, res) => {
+  let status = req.params.status;
+  let query = `SELECT * FROM cases`;
+  let qarg = [];
+  if(req.session.user.type == 'admin') {
+    if(status == "open") {
+      query += ` WHERE JSON_UNQUOTE(JSON_EXTRACT(case_info, \'$.state\')) = "open"`;
+    }
+    query +=` ORDER BY github_num DESC;`
   } else {
-    [rows, f] = 
-      await db.query(
-        `SELECT * FROM cases
-        WHERE JSON_CONTAINS(pse_list, ?) 
-        OR pse_list LIKE ? 
-        OR owner = ? 
-        OR owner = ?
-        ORDER BY github_num DESC;`,
-        [
-          JSON.stringify([userExtraInfo[0].github]),
-          '%No PSEs involved in the comments%',
-          req.session.user.email,
-          ""
-        ]
-      );
+    query += " WHERE";
+    if(status == "open") {
+      query += ` JSON_UNQUOTE(JSON_EXTRACT(case_info, \'$.state\')) = "open" AND`;
+    }
+    query += ` (JSON_CONTAINS(pse_list, ?) OR pse_list LIKE ? OR owner = ? OR owner = ? ) ORDER BY github_num DESC;`
+    qarg = [JSON.stringify([req.session.user.githubAlias]),'%No PSEs involved in the comments%', req.session.user.email, ""];
   }
-  
+
+  let [rows, f] = await db.query(query, qarg)
+
   rows.forEach((row, i) => {
 
     row.ai_analysis =  row.ai_analysis !== undefined ? JSON.parse(row.ai_analysis) : "{}"

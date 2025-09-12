@@ -27,7 +27,7 @@
         </div>
         <div class="col-md-4">
           
-            <div class="custom-checkbox" id="closedCheckbox"></div>
+            <div class="custom-checkbox" title="It may take some time..." id="closedCheckbox"></div>
             <span>Show Closed</span>
             <!-- <div class="custom-checkbox checked" id="l4Checkbox"></div>
             <span>L4</span>
@@ -130,27 +130,40 @@
       ]
     }
   }
-
-  async function generateCasesTable() {
+  
+  async function generateCasesTable(onlyOpen=true) {
     const loading = document.getElementById('loading');
     const main = document.getElementById('main');
     loading.style.display = 'block';
     main.style.display = 'none';
 
-    await fetch('/dashboard/fetch/all') 
-      .then(response => response.json())
-      .then(data => {
-        cases = data;
-        loading.style.display = 'none';
-        main.style.display = 'block';
-      })
-      .catch(error => {
-        console.error('Error fetching cases:', error);
-        loading.style.display = 'none';
-        main.style.display = 'block';
-    });
-    
-    
+    if (onlyOpen){
+      await fetch('/dashboard/fetch-all/open') 
+        .then(response => response.json())
+        .then(data => {
+          cases = data;
+          loading.style.display = 'none';
+          main.style.display = 'block';
+        })
+        .catch(error => {
+          console.error('Error fetching cases:', error);
+          loading.style.display = 'none';
+          main.style.display = 'block';
+      });
+    } else {
+        await fetch('/dashboard/fetch-all/all') 
+        .then(response => response.json())
+        .then(data => {
+          cases = data;
+          loading.style.display = 'none';
+          main.style.display = 'block';
+        })
+        .catch(error => {
+          console.error('Error fetching cases:', error);
+          loading.style.display = 'none';
+          main.style.display = 'block';
+      });
+    }
     let html = '';
 
     cases.forEach(function(caseItem, i) {
@@ -244,8 +257,14 @@
     countRows('caseTable');
   });
 
-  document.getElementById('closedCheckbox').addEventListener('click', function() {
-    this.classList.toggle('checked');
+  document.getElementById('closedCheckbox').addEventListener('click', async function() {
+    const toggled = this.classList.toggle('checked');
+    if(!toggled){
+      this.title="It may take some time...";
+    }else {
+      this.title=":)";
+    }
+    await generateCasesTable(!toggled);
     showClosed('caseTable');
   });
 
