@@ -250,7 +250,10 @@
   });
 
   function redirectToPage(id) {
-    window.open(`/github/${id}`, '_blank', 'noopener');
+    
+    console.log("asdada");
+    window.open(`/github/${id}`, '_self');
+    //window.open(`/github/${id}`, '_blank', 'noopener');
   }
   
 
