@@ -158,7 +158,7 @@
       html += `<tr data-queue="" data-case-status="${caseItem.case_info.state}" data-id="${caseItem.case_info.number}" data-original-index="${i}" title="GPU: ${gpu}\nCPU: ${cpu}\nOS: ${os}\nDriver: ${driver}" onclick="redirectToPage('${caseItem.case_info.number}')">`;
       html += `<td style="text-align: center;">${formatSQLDate(caseItem.case_info.created_at)}</td>`;
       html += `<td style="text-align: center;"><p title="${caseItem.sentiment}">${caseItem.sentiment}</p></td>`;
-      html += `<td>${caseItem.ai_analysis.case_title}</td>`;
+      html += `<td class="limited">${caseItem.ai_analysis.case_title}</td>`;
       html += `<td>${gpu}`;
       if(!ssu){
         html += `<spam title="SSU log not found">❗</spam>`
@@ -177,7 +177,7 @@
       }
 
       html += `</td>`;
-      html += `<td style="text-align: center;">${caseItem.owner}</td>`;
+      html += `<td class="limited" style="text-align: center;">${caseItem.owner}</td>`;
       html += `<td style="text-align: center;">`;
 
       const grading = caseItem.ai_feedback.support_exp_grading.toUpperCase();
@@ -250,7 +250,7 @@
   });
 
   function redirectToPage(id) {
-    window.location.href = `/github/${id}`;
+    window.open(`/github/${id}`, '_blank', 'noopener');
   }
   
 

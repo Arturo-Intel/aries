@@ -1,5 +1,77 @@
 <% layout('layout') %>
-<h1 class="mb-4">User Information</h1>
-<pre><%= JSON.stringify(user.data, null, 2) %></pre>
+<div class="row align-items-center pt-3 aries-marco">
 
+      <div class="col-md-3 text-center">
+        <img src="<%= user.photoUrl %>" alt="<%= user.name %>'s Photo" class="profile-photo" />
+      </div>
+     
+      <div class="col-md-9">
+        <h1><%= user.name %></h1>
+        <span><strong>WWID: </strong><%= user.wwid %></span><br>
+        <span><strong>Email: </strong><%= user.email %></span><br>
+       
+        <div class="d-flex align-items-center gap-2">
+            <span><strong>GitHub Username: </strong><%= pse.github %></span>
+            <input type="text" class="url-input form-control" value="<%= pse.github %>" />
+            <button class="url-input submit-btn" data-type="github">update</button>
+            <button class="url-input cancel-btn">cancel</button>
+            <button class="edit-btn">Edit</button><br>
+        </div>
+        
+        <span><strong>Level: </strong><%= pse.type %></span>
+        <button class="url-input cancel-btn">cancel</button>
+        <button class="submit-btn" data-type="level">↑</button><br>
+      </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const cancel_buttons =  document.querySelectorAll('.cancel-btn');  
+        cancel_buttons.forEach(button => {
+            button.addEventListener('click', function() {
 
+                this.style.display = 'none'
+                this.previousElementSibling.style.display = 'none';
+                this.previousElementSibling.previousElementSibling.style.display = 'none';
+                this.previousElementSibling.previousElementSibling.previousElementSibling.style.display = 'block';
+                this.nextElementSibling.style.display = 'block'
+            });
+        });
+
+        const edit_buttons =  document.querySelectorAll('.edit-btn')
+        edit_buttons.forEach(button => {
+            button.addEventListener('click', function() {
+                this.previousElementSibling.style.display = 'block';
+                this.previousElementSibling.previousElementSibling.style.display = 'block';
+                this.previousElementSibling.previousElementSibling.previousElementSibling.style.display = 'block';
+                this.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.style.display = 'none';
+                this.style.display = 'none';
+            });
+        });
+
+        const submit_buttons =  document.querySelectorAll('.submit-btn')
+        submit_buttons.forEach(button => {
+            button.addEventListener('click', async function() {
+                const type = this.getAttribute('data-type');
+                if(type == "github") {
+                    const inputField = this.previousElementSibling;
+                    const new_value = inputField.value;
+                    try {
+                        const response = await fetch('/users/githubalias/<%= pse.id %>', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ type, new_value })
+                        });
+                        if (response.ok) {
+                            window.location.href = `/userinfo`;
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+}
+            });
+        });
+
+    });
+</script>

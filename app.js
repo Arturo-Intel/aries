@@ -172,16 +172,18 @@ app.get('/redirect', async (req, res) => {
     const photoData = Buffer.from(userPhoto.data, 'binary').toString('base64');
     const photoUrl = `data:image/jpeg;base64,${photoData}`;
     
-    const [result, f] = await db.query('SELECT CASE WHEN COUNT(*) > 0 THEN \'TRUE\' ELSE \'FALSE\' END AS isAdmin FROM vip_list WHERE username = ?;', userInfo.data.mail)
+    const [isadmin, fisadmin] = await db.query('SELECT CASE WHEN COUNT(*) > 0 THEN \'TRUE\' ELSE \'FALSE\' END AS isAdmin FROM vip_list WHERE username = ?;', userInfo.data.mail)
 
+    const [userExtraInfo, fxtraInfo] = await db.query('SELECT * FROM pses WHERE email = ?', userInfo.data.mail)
     // Store user information in session
     req.session.user = {
         wwid: userInfo.data.jobTitle, 
         name: userInfo.data.givenName + " " +userInfo.data.surname,
-        givenName: userInfo.data.givenName, 
+        githubAlias: userExtraInfo[0].github, 
         data: userInfo.data,
         email: userInfo.data.mail,
-        extra: result[0]['isAdmin'],
+        extra: isadmin[0]['isAdmin'],
+        type: userExtraInfo[0].type,
         photoUrl: photoUrl
     };
 
@@ -244,63 +246,58 @@ app.get('/dashboard', checkSession, async (req, res) => {
     });
 });
 
- async function api_github_call(id) {
-    const api_url = 'https://api.github.com/repos/IGCIT/Intel-GPU-Community-Issue-Tracker-IGCIT/issues/';
-    const headers = {
-            'Authorization': process.env.GITHUB_TOKEN,
-            'Accept': 'application/vnd.github.v3+json'
-          };
-    const url = api_url + id;
-    try {    
-        const res2 = await axios.get(url, {httpsAgent: proxyAgent,  headers: headers});
-        console.log("[OK] github api call: " + url)
-        return res2.data;
-    } catch (error) {
-        console.log("[GitHub API] " + error);
-        return false;
-    }
+async function api_github_call(id) {
+  const api_url = 'https://api.github.com/repos/IGCIT/Intel-GPU-Community-Issue-Tracker-IGCIT/issues/';
+  const headers = {
+          'Authorization': process.env.GITHUB_TOKEN,
+          'Accept': 'application/vnd.github.v3+json'
+        };
+  const url = api_url + id;
+  try {    
+      const res2 = await axios.get(url, {httpsAgent: proxyAgent,  headers: headers});
+      console.log("[OK] github api call: " + url)
+      return res2.data;
+  } catch (error) {
+      console.log("[GitHub API] " + error);
+      return false;
   }
-
+}
 
 app.get('/githubupdate/:id', async (req, res) => {
   let id = req.params.id;
   let caseInfo = await api_github_call(id);
   let commentsInfo = await api_github_call(id + "/comments")
 
-if(!caseInfo || !commentsInfo) {
-//  const err = new Error('Something went wrong!');
-//  err.status = 500; 
-//  next(err); 
-res.status(500).render('error', {error:  new Error("Github Case "+id +" doesn't exists!")});
-}else {
+  if(!caseInfo || !commentsInfo) {
+    res.status(500).render('error', {error:  new Error("Github Case "+id +" doesn't exists!")});
+  }else {
 
-  try {
-    data = JSON.stringify({
-            "caseInfo": caseInfo, 
-            "commentsInfo": commentsInfo,
-            "num" : id
-        });
+    try {
+      data = JSON.stringify({
+              "caseInfo": caseInfo, 
+              "commentsInfo": commentsInfo,
+              "num" : id
+          });
 
-    const response = await fetch("http://localhost:3000/cerebro", {
-        method: 'POST',
-        headers: {
-                  "Content-Type": "application/json"
-                 },
-        body: data
-    });
+      const response = await fetch("http://localhost:3000/cerebro", {
+          method: 'POST',
+          headers: {
+                    "Content-Type": "application/json"
+                  },
+          body: data
+      });
 
-   if (response.ok) {
-      res.redirect('/github/'+id);
-    } else {
-      //res.redirect("/dashboard");
-      res.status(500).send('error');
+    if (response.ok) {
+        res.redirect('/github/'+id);
+      } else {
+        res.status(500).send('error');
+      }
+
+    } catch (e) {
+      console.error('Error:', e);
+      res.status(500).send('Internal server error');
     }
-
-  } catch (e) {
-    console.error('Error:', e);
-    res.status(500).send('Internal server error');
   }
-}
 });
 
 app.post('/cerebro', async (req, res) => {
@@ -558,12 +555,21 @@ app.post('/github/:id/update-urls', async (req, res) => {
   res.status(200).send('URL updated successfully');
 });
 
+app.post('/users/githubalias/:id', async (req, res) => {
+  const github_alias = req.body.new_value;
+  const user_id = parseInt(req.params.id, 10);
+  await db.query('UPDATE pses SET github = ? WHERE id = ?', [github_alias, user_id ]);
+  res.status(200).send('Github alias updated successfully');
+});
+
 app.get('/dashboard/fetch/all', checkSession, async (req, res) => {
   let [rows, f] = [null, null]
-  if(req.session.user.extra == 'TRUE') {
+  const [userExtraInfo, fxtraInfo] = await db.query('SELECT * FROM pses WHERE email = ?', req.session.user.email)
+
+  if(userExtraInfo[0].type == 'admin') {
     [rows, f] = await db.query('SELECT * FROM cases ORDER BY github_num DESC;')
   } else {
-    [rows, f] = await db.query('SELECT * FROM cases WHERE pse_list LIKE \'%'+req.session.user.givenName+'%\' OR pse_list LIKE \'%No PSEs involved in the comment%\' ORDER BY github_num DESC;')
+    [rows, f] = await db.query('SELECT * FROM cases WHERE pse_list LIKE \'%'+userExtraInfo[0].github+'%\' OR pse_list LIKE \'%No PSEs involved in the comments%\' OR owner = ? OR owner = ? ORDER BY github_num DESC;', [req.session.user.email, ""])
   }
   
   rows.forEach((row, i) => {
@@ -603,10 +609,13 @@ app.get('/dashboard/fetch/:id', checkSession, async (req, res) => {
 });
 
 app.get('/userinfo', checkSession, async (req, res) => {
-    res.render('userinfo', {
-        title: 'User Information',
-        user: req.session.user
-    });
+
+  const [rows, f] = await db.query('SELECT * FROM pses WHERE email = ?;', req.session.user.email);
+  res.render('userinfo', {
+      title: 'User Information',
+      user: req.session.user,
+      pse: rows[0]
+  });
 });
 
 app.get('/old_test', checkSession, async (req, res) => {

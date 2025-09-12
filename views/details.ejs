@@ -419,6 +419,7 @@
             ]
         }
     }
+
     document.addEventListener('DOMContentLoaded', function() {
         const refresh_button = document.getElementById('refresh_data');
         refresh_button.addEventListener('click', async function() {
@@ -440,14 +441,14 @@
         const tabContent = document.querySelector('.tab-content');
         const analysisTab = document.getElementById('analysis-tab');
         analysisTab.addEventListener('click', function() {
-            tabContent.style.borderRadius = '0 10px 10px 10px'; // Change border-radius when Analysis tab is clicked
+            tabContent.style.borderRadius = '0 10px 10px 10px'; 
         });
 
         const tabs = document.querySelectorAll('.nav-link');
         tabs.forEach(tab => {
             tab.addEventListener('click', function() {
                 if (tab !== analysisTab) {
-                    tabContent.style.borderRadius = '10px 10px 10px 10px'; // Reset border-radius for other tabs
+                    tabContent.style.borderRadius = '10px 10px 10px 10px'; 
                 }
             });
         });

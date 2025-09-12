@@ -69,7 +69,8 @@
 
 .aries-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: collapse; 
+  /* table-layout: fixed; */
   font-size: small;
 }
 
@@ -91,6 +92,13 @@
 .aries-table td {
   padding: 5px;
   color: #333333; /* Dark gray for text */
+}
+
+.aries-table td.limited {
+  width: 350px;
+  max-width: 350px;
+  word-wrap: break-word;
+  white-space: normal;     
 }
 
 /* Alternate row styling for better readability */
@@ -243,66 +251,75 @@ footer {
 .inline-span {
     vertical-align: middle; /* Aligns elements vertically */
 }
-    .carousel-item a, video,  #videoWrapper {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
 
-    .carousel-item {
-      align-items: center;
-      min-height: 400px;
-    }
+.carousel-item a, video,  #videoWrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
 
-    .carousel-control-prev-icon,
-    .carousel-control-next-icon {
-      background-color: rgba(0, 0, 0, 0.5);
+.carousel-item {
+  align-items: center;
+  min-height: 400px;
+}
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+}
+
+.carousel-control-prev,
+.carousel-control-next {
+  top: 50%;
+  transform: translateY(-50%);
+  filter: invert(1);
+}
+
+.spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 8px solid #f3f3f3;
+  border-top: 8px solid #3498db;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.counter {
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 1.2em;
+}
+
+.video-container {
+  position: relative;
+  width: 600px;
+  height: 400px;
+  
+}
+
+.video-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+    .profile-photo {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
       border-radius: 50%;
-    }
-
-    .carousel-control-prev,
-    .carousel-control-next {
-      top: 50%;
-      transform: translateY(-50%);
-      filter: invert(1);
-    }
-
-    .spinner {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      border: 8px solid #f3f3f3;
-      border-top: 8px solid #3498db;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .counter {
-      text-align: center;
-      margin-bottom: 10px;
-      font-size: 1.2em;
-    }
-
-    .video-container {
-      position: relative;
-      width: 600px;
-      height: 400px;
-      
-    }
-
-    .video-container iframe {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      border: 3px solid #007bff;
     }
