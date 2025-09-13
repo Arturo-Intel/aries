@@ -641,7 +641,21 @@ app.post('/users/githubalias/:id', async (req, res) => {
   res.status(200).send('Github alias updated successfully');
 });
 
-app.get('/old_test', checkSession, async (req, res) => {
+app.get('/cases/latest', async (req, res) => {
+  let [rows, f] = await db.query('SELECT MAX(github_num) FROM cases;')
+  res.send(rows[0]['MAX(github_num)'].toString());
+});
+
+app.get('/cases/open-list', async(req, res)=> {
+  let [rows, f] = await db.query(`
+    SELECT JSON_ARRAYAGG(github_num) AS numbers
+    FROM cases
+    WHERE JSON_UNQUOTE(JSON_EXTRACT(case_info, '$.state')) = "open"
+  `);
+  res.send(rows[0].numbers);
+});
+
+app.get('/old_test', async (req, res) => {
     res.render('test', {
         title: 'Test',
         user: req.session.user
