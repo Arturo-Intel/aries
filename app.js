@@ -285,7 +285,9 @@ app.get('/githubupdate/:id', async (req, res) => {
   let commentsInfo = await api_github_call(id + "/comments")
 
   if(!caseInfo || !commentsInfo) {
-    res.status(606).render('error', {error:  new Error("Github Case "+id +" doesn't exists!")});
+    const err = new Error("Github Case " + id + " doesn't exist!");
+    err.status = 606;
+    res.status(606).render('error', { error: err });
   }else {
 
     try {
