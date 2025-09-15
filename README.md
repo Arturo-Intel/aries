@@ -1,4 +1,4 @@
-# Project ARIES: Analytical Resolution Interface for Engineering Support
+# Project ARIES: Analytical Resolution Inteligence for Engineering Support
 
 ## Overview
 

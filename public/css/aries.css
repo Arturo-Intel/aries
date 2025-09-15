@@ -128,12 +128,14 @@
   animation: highlight 2s infinite;
 }
 
+.hide-row { display: none; }
+
 .custom-checkbox {
   width: 20px;
   height: 20px;
   border: 2px solid #007bff;
   border-radius: 4px;
-  display: inline-block;
+  display: block;
   cursor: pointer;
   position: relative;
 }
@@ -316,10 +318,20 @@ footer {
   height: 100%;
 }
 
-    .profile-photo {
-      width: 150px;
-      height: 150px;
-      object-fit: cover;
-      border-radius: 50%;
-      border: 3px solid #007bff;
-    }
+.profile-photo {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #007bff;
+}
+
+#pagination .active {
+  font-weight: bold;
+  background-color: #007bff;
+  color: white;
+  border-radius: 4px;
+}
+#pagination button {
+  margin: 0 2px;
+}

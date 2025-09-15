@@ -18,23 +18,48 @@
     <div id="tools" >
       <div class="row gx-2">
         <div class="col-md-4">
-          <button id="urgentButton" class="btn btn-danger"  onclick="urgentCases()">Urgent Cases</button>
+          <button id="urgentButton" class="btn btn-outline-danger">Urgent Cases</button>
         </div>
         <div class="col-md-4">
           <div class="input-group">
             <input type="text" id="searchInput" class="form-control" placeholder="Search...">
           </div>
         </div>
-        <div class="col-md-4">
-          
-            <div class="custom-checkbox" title="It may take some time..." id="closedCheckbox"></div>
-            <span>Show Closed</span>
-            <!-- <div class="custom-checkbox checked" id="l4Checkbox"></div>
-            <span>L4</span>
-            <div class="custom-checkbox" id="l5Checkbox"></div>
-            <span>L5</span>-->
-          
+        <div class="col-md-4 d-flex flex-column">
+          <div id="checkboxesDiv" class="row">
+            <div class="col-6 mb-2">
+              <div class="d-flex align-items-center">
+                  <input type="checkbox" id="openCheckbox" checked> 
+                  <span class="ms-2">Open</span>
+              </div>
+            </div>
+            <div class="col-6 mb-2">
+              <div class="d-flex align-items-center">
+                  <input type="checkbox" id="closedCheckbox" > 
+                  <span class="ms-2">Closed</span>
+              </div>
+            </div>
+            <div class="col-6 mb-2">
+              <div class="d-flex align-items-center">
+                  <input type="checkbox" id="L4Checkbox" checked>
+                  <span class="ms-2">L4</span>
+              </div>
+            </div>
+            <div class="col-6 mb-2">
+              <div class="d-flex align-items-center">
+                  <input type="checkbox" id="L5Checkbox">
+                  <span class="ms-2">L5</span>
+              </div>
+            </div>
+            <div class="col-6 mb-2">
+              <div class="d-flex align-items-center">
+                  <input type="checkbox" id="toMeCheckbox">
+                  <span class="ms-2">Assigned to me</span>
+              </div>
+            </div>
+          </div>
         </div>
+
 
         <!-- <div class="col d-flex justify-content-center align-items-end" style="height: 100px;">
           <div class="form-group">
@@ -85,27 +110,45 @@
 
       </div>
     </div>
-    <div class="mt-3"><span id="nCases">0</span> Cases found.</div>
-    
+    <div class="mt-3" id="nCases"></div>
+    <div id="pagination"></div>
     <table id="caseTable" class="aries-table">
       <thead>
         <tr>
           <th style="text-align: center;">Date Created</th>
-          <th style="text-align: center;" id="header-sentiment" onclick="sortTable('caseTable', 1, ['neutral', 'trending negative', 'strongly negative'])" data-sort="desc">Sentiment</th>      
-          <th id="header-title" onclick="restoreOriginalOrder('caseTable')" data-sort="desc" >Title</th>
+          <th style="text-align: center;" id="header-sentiment" data-sort="desc">Sentiment</th>      
+          <th class="sortable" data-column="title">Title <span id="titleSortIcon">&#x25B2;</span></th>
+
           <th style="text-align: center;">GPU</th>
-          <th style="text-align: center;">PSEs Involved</th>
-          <th style="text-align: center;">Owner</th>
-          <th id="header-SEG" onclick="sortTable('caseTable', 5, ['not applicable','needs improvement', 'ok', 'average', 'very good', 'excellent'])"  data-sort="asc" style="text-align: center;">Support Experience Grading</th>
+          <th id="headr-owner" style="text-align: center;">PSEs Involved</th>
+
+          <th class="sortable" data-column="owner" style="text-align: center;">Owner <span id="ownerSortIcon"></span></th>
+          
+          <th id="header-SEG" data-sort="asc" style="text-align: center;">Support Experience Grading</th>
           <th style="text-align: center;" >Last Updated</th>
         </tr>
       </thead>
       <tbody id="casebody">
       </tbody>
     </table>
+    
   </div>
 </div>
 <script>
+
+  const ROWS_PER_PAGE = 25;
+  let openCases = [];
+  let allCases = null; // null means not fetched yet
+  let filteredCases = [];
+  let currentPage = 1;
+  let currentSearch = '';
+  let urgentCasesActive = false;
+  const sortState = { column: 'title', ascending: true };
+
+  function updateCasesCount() {
+    const countDiv = document.getElementById('nCases');
+    countDiv.textContent = `Cases found: ${filteredCases.length}`;
+  }
 
   function getinfo(item){
     if(item.ai_logs != "false") {
@@ -130,148 +173,288 @@
       ]
     }
   }
-  
-  async function generateCasesTable(onlyOpen=true) {
-    const loading = document.getElementById('loading');
-    const main = document.getElementById('main');
-    loading.style.display = 'block';
-    main.style.display = 'none';
 
-    if (onlyOpen){
-      await fetch('/dashboard/fetch-all/open') 
-        .then(response => response.json())
-        .then(data => {
-          cases = data;
-          loading.style.display = 'none';
-          main.style.display = 'block';
-        })
-        .catch(error => {
-          console.error('Error fetching cases:', error);
-          loading.style.display = 'none';
-          main.style.display = 'block';
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('openCheckbox').addEventListener('change', refreshTableOnFilter);
+    document.getElementById('closedCheckbox').addEventListener('change', refreshTableOnFilter);
+    document.getElementById('L4Checkbox').addEventListener('change', refreshTableOnFilter);
+    document.getElementById('L5Checkbox').addEventListener('change', refreshTableOnFilter);
+    document.getElementById('toMeCheckbox').addEventListener('change', refreshTableOnFilter);
+    loadOpenCases();
+
+    document.querySelectorAll('.sortable').forEach(th => {
+      th.addEventListener('click', function() {
+        const col = this.getAttribute('data-column');
+        if (sortState.column === col) {
+          sortState.ascending = !sortState.ascending;
+        } else {
+          sortState.column = col;
+          sortState.ascending = true;
+        }
+        updateSortIcons();
+        sortFilteredCases();
+        renderTable();
+        renderPagination();
+        updateCasesCount();
       });
-    } else {
-        await fetch('/dashboard/fetch-all/all') 
-        .then(response => response.json())
-        .then(data => {
-          cases = data;
-          loading.style.display = 'none';
-          main.style.display = 'block';
-        })
-        .catch(error => {
-          console.error('Error fetching cases:', error);
-          loading.style.display = 'none';
-          main.style.display = 'block';
+    });
+
+    const urgentButton = document.getElementById('urgentButton');
+
+    urgentButton.title="Show Urgent cases only\n\tCases without an owner\n\tCases with no PSEs involved in the IGCIT case\n\tCases without ISVC url asigned";
+    
+    urgentButton.addEventListener('click', function() {
+      urgentCasesActive = !urgentCasesActive;
+      goToPage(1);
+      computeFilteredCases();
+      renderTable();
+      renderPagination();
+      updateCasesCount();
+
+      this.classList.toggle('active', urgentCasesActive);
+      this.classList.add('btn-outline-warning');
+
+      document.querySelectorAll('#checkboxesDiv input[type="checkbox"]').forEach(function(checkbox) {
+        checkbox.disabled = urgentCasesActive;
       });
+    });
+  });
+
+  async function loadOpenCases() {
+    showLoading(true);
+    try {
+      const response = await fetch('/dashboard/fetch-all/open');
+      openCases = await response.json();
+      // Use openCases as the initial set
+      refreshTableOnFilter();
+    } catch (e) {
+      console.error('Failed to fetch open cases', e);
+    } finally {
+      showLoading(false);
     }
-    let html = '';
+  }
 
-    cases.forEach(function(caseItem, i) {
+  async function loadAllCases() {
+    showLoading(true);
+    try {
+      const response = await fetch('/dashboard/fetch-all/all');
+      allCases = await response.json();
+      refreshTableOnFilter();
+    } catch (e) {
+      console.error('Failed to fetch all cases', e);
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  function showLoading(isLoading) {
+    document.getElementById('loading').style.display = isLoading ? 'block' : 'none';
+    document.getElementById('main').style.display = isLoading ? 'none' : 'block';
+  }
+
+  function getCheckedStatuses() {
+    const statuses = [];
+    if (document.getElementById('openCheckbox').checked) statuses.push('open');
+    if (document.getElementById('closedCheckbox').checked) statuses.push('closed');
+    return statuses;
+  }
+
+  function refreshTableOnFilter() {
+    const statuses = getCheckedStatuses();
+    // If "closed" is requested and full data not fetched yet, load all cases and return
+    if (statuses.includes('closed') && allCases === null) {
+      alert("⚠️Warning:\n\nLoading all closed cases may take significant time and could slow down your browser.")
+      loadAllCases();
+      return;
+    }
+    goToPage(1);
+    computeFilteredCases();
+    renderTable();
+    renderPagination();
+    updateCasesCount();
+  }
+
+  function computeFilteredCases() {
+    const statuses = getCheckedStatuses();
+    const l4Checked = document.getElementById('L4Checkbox').checked;
+    const l5Checked = document.getElementById('L5Checkbox').checked;
+    let toMeChecked = document.getElementById('toMeCheckbox').checked;
+    let source = (allCases && statuses.includes('closed')) ? allCases : openCases;
+    
+    filteredCases = source.filter((c, i) => {
+      c.originalIndex = i;
+      // Determine case level
+      const isvcOk = c.isvc_url && c.isvc_url.trim() !== '';
+      const hsdOk = c.hsd && c.hsd.trim() !== '';
+      const caseLevel = hsdOk ? 'L5' : isvcOk ? 'L4' : 'L1/L2/L3';
+
+      // Filter by status for all cases
+      if (!statuses.includes(c.case_info.state)) return false;
+
+      // Filter: level AND status checkboxes must match for L4/L5
+      if (caseLevel === 'L4' && !l4Checked) return false;
+      if (caseLevel === 'L5' && !l5Checked) return false;
+
+      
+      // Global search match (search all text fields defined here)
+      if (currentSearch) {
+        let textBlock = [
+          c.case_info.number,
+          c.case_info.state,
+          c.owner,
+          c.sentiment,
+          c.ai_analysis.case_title,
+          c.ai_feedback.pses,
+          caseLevel
+        ]
+        .map(x => (x || '').toString().toLowerCase())
+        .join(' ');
+        if (!textBlock.includes(currentSearch)) return false;
+      }
+
+      // Urgent cases filter
+      if (urgentCasesActive) {
+        const noOwner = !c.owner || c.owner.trim() === '';
+        const noPSE = Array.isArray(c.pse_list) && c.pse_list.includes("No PSEs involved in the comments");
+        const caseLevel = hsdOk ? 'L5' : isvcOk ? 'L4' : 'L1/L2/L3';
+        const urgentLevel = ['L1/L2/L3'].includes(caseLevel);
+        if (!(noOwner || noPSE || urgentLevel)) return false;
+      }
+
+      // user cases
+      if (c.owner !== "<%= user.email %>" && toMeChecked) return false;
+
+      // L1/L2/L3 does not require any level checkbox
+      return true;
+    });
+  }
+
+  function renderTable() {
+    const tableBody = document.getElementById('casebody');
+    let html = '';
+    const start = (currentPage - 1) * ROWS_PER_PAGE;
+    const paginated = filteredCases.slice(start, start + ROWS_PER_PAGE);
+
+    paginated.forEach((caseItem, i) => {
       let [ssu, gpu, cpu, os, driver] = getinfo(caseItem);
-      html += `<tr data-queue="" data-case-status="${caseItem.case_info.state}" data-id="${caseItem.case_info.number}" data-original-index="${i}" title="GPU: ${gpu}\nCPU: ${cpu}\nOS: ${os}\nDriver: ${driver}" onclick="redirectToPage('${caseItem.case_info.number}')">`;
+      const grading = caseItem.ai_feedback.support_exp_grading.toUpperCase();
+      let emoji = '';
+      let title = caseItem.ai_feedback.support_exp_grading;
+      switch (grading) {
+        case 'NEEDS IMPROVEMENT': emoji = '🤕'; break;
+        case 'OK': emoji = '🙂'; break;
+        case 'AVERAGE': emoji = '😐'; break;
+        case 'VERY GOOD': emoji = '😃'; break;
+        case 'EXCELLENT': emoji = '🥳'; break;
+        default: emoji = '❗'; title = 'Not applicable';
+      }
+      html += `<tr data-case-level="${caseItem.isvc_url ? 'L4': caseItem.hsd ? 'L5': 'L1/L2/L3'}" data-case-status="${caseItem.case_info.state}" data-id="${caseItem.case_info.number}" data-original-index="${i}" title="GPU: ${gpu}\nCPU: ${cpu}\nOS: ${os}\nDriver: ${driver}" onclick="redirectToPage('${caseItem.case_info.number}')">`;
       html += `<td style="text-align: center;">${formatSQLDate(caseItem.case_info.created_at)}</td>`;
       html += `<td style="text-align: center;"><p title="${caseItem.sentiment}">${caseItem.sentiment}</p></td>`;
       html += `<td class="limited">${caseItem.ai_analysis.case_title}</td>`;
       html += `<td>${gpu}`;
-      if(!ssu){
-        html += `<spam title="SSU log not found">❗</spam>`
-      }
-      html += `</td>`
-
-      html += `<td >`;
-      if (caseItem.pse_list[0] !== "No PSEs involved in the comments") {
-        html += `<ul>`;
-        caseItem.pse_list.forEach(function(pses) {
-          html += `<li>${pses}</li>`;
-        });
-        html += `</ul>`;
-      } else {
-        html += `<p>${caseItem.pse_list[0]}</p>`;
-      }
-
+      if(!ssu){ html += `<span title="SSU log not found">❗</span>` }
       html += `</td>`;
+      html += `<td >${caseItem.pse_list !== "No PSEs involved in the comments" 
+        ? `<ul>${caseItem.pse_list.map(pses => `<li>${pses}</li>`).join('')}</ul>` 
+        : `<p>${caseItem.pse_list}</p>`}</td>`;
       html += `<td class="limited" style="text-align: center;">${caseItem.owner}</td>`;
-      html += `<td style="text-align: center;">`;
-
-      const grading = caseItem.ai_feedback.support_exp_grading.toUpperCase();
-      let emoji = '';
-      let title = caseItem.ai_feedback.support_exp_grading;
-
-      switch (grading) {
-        case 'NEEDS IMPROVEMENT':
-          emoji = '🤕';
-          break;
-        case 'OK':
-          emoji = '🙂';
-          break;
-        case 'AVERAGE':
-          emoji = '😐';
-          break;
-        case 'VERY GOOD':
-          emoji = '😃';
-          break;
-        case 'EXCELLENT':
-          emoji = '🥳';
-          break;
-        default:
-          emoji = '❗';
-          title = 'Not applicable';
-      }
-
-      html += `<p title="${title}" style="font-size:xx-large">${emoji}</p>`;
-      html += `</td>`;
+      html += `<td style="text-align: center;"><p title="${title}" style="font-size:xx-large">${emoji}</p></td>`;
       html += `<td>${formatSQLDate(caseItem.last_date)}</td>`;
       html += `</tr>`;
     });
 
-    document.getElementById('casebody').innerHTML = html;
+    tableBody.innerHTML = html;
   }
- 
-  document.addEventListener('DOMContentLoaded', async function() {
-    await generateCasesTable();
-    // highlightUrgentCases('caseTable');
-    // filterTable('caseTable');
-    showClosed('caseTable');
-  });
-  
-  document.getElementById('searchInput').addEventListener('keyup', function() {
-    var input = this.value.toLowerCase();
-    var rows = document.querySelectorAll('#casebody tr');
 
-    rows.forEach(function(row) {
-      var cells = row.querySelectorAll('td');
-      var match = false;
+  function renderPagination() {
+    const totalPages = Math.ceil(filteredCases.length / ROWS_PER_PAGE) || 1;
+    const container = document.getElementById('pagination');
+    let html = '';
 
-      cells.forEach(function(cell) {
-        if (cell.textContent.toLowerCase().includes(input)) {
-          match = true;
-        }
-      });
-
-      if (match) {
-        showRow(row);
-      } else {
-        row.style.display = 'none';
-      }
-    });
-    countRows('caseTable');
-  });
-
-  document.getElementById('closedCheckbox').addEventListener('click', async function() {
-    const toggled = this.classList.toggle('checked');
-    if(!toggled){
-      this.title="It may take some time...";
-    }else {
-      this.title=":)";
+    // Previous button
+    html += `<button ${currentPage === 1 ? "disabled" : ""} onclick="goToPage(${currentPage - 1})">Previous</button> `;
+    // Always show first page
+    if (totalPages > 1) {
+      html += `<button onclick="goToPage(1)"${currentPage === 1 ? ' class="active"' : ''}>1</button>`;
     }
-    await generateCasesTable(!toggled);
-    showClosed('caseTable');
+    // Show ellipsis if necessary before window
+    if (currentPage > 4) {
+      html += `<span>...</span>`;
+    }
+    // Show window of pages around current page
+    for (let i = Math.max(2, currentPage - 2); i <= Math.min(totalPages - 1, currentPage + 2); i++) {
+      html += `<button onclick="goToPage(${i})"${i === currentPage ? ' class="active"' : ''}>${i}</button>`;
+    }
+    // Show ellipsis if necessary after window
+    if (currentPage < totalPages - 3) {
+      html += `<span>...</span>`;
+    }
+    // Always show last page
+    if (totalPages > 1) {
+      html += `<button onclick="goToPage(${totalPages})"${currentPage === totalPages ? ' class="active"' : ''}>${totalPages}</button>`;
+    }
+    // Next button
+    html += `<button ${currentPage === totalPages ? "disabled" : ""} onclick="goToPage(${currentPage + 1})">Next</button>`;
+
+    container.innerHTML = html;
+  }
+
+  document.getElementById('searchInput').addEventListener('input', function(e) {
+    currentSearch = e.target.value.toLowerCase();
+    currentPage = 1;
+    computeFilteredCases();
+    renderTable();
+    renderPagination();
+    updateCasesCount();
   });
+
+  window.goToPage = function(page) {
+    currentPage = page;
+    renderTable();
+    renderPagination();
+    updateCasesCount();
+  };
 
   function redirectToPage(id) {
     window.open(`/github/${id}`, '_self');
-    //window.open(`/github/${id}`, '_blank', 'noopener');
   }
-  
+
+  function sortFilteredCases() {
+    const direction = sortState.ascending ? 1 : -1;
+    filteredCases.sort((a, b) => {
+      let valA, valB;
+      switch (sortState.column) {
+        case 'title':
+          valA = a.originalIndex;
+          valB = b.originalIndex;
+          return (valA - valB) * direction;
+        case 'owner':
+          valA = (a.owner || '').toLowerCase();
+          valB = (b.owner || '').toLowerCase();
+          return valA.localeCompare(valB) * direction;
+        default:
+          return 0;
+      }
+
+      if (valA < valB) return sortState.ascending ? -1 : 1;
+      if (valA > valB) return sortState.ascending ? 1 : -1;
+      return 0;
+    });
+  }
+
+  function updateSortIcons() {
+    const sortColumns = ['title', 'owner'];
+    sortColumns.forEach(col => {
+      const icon = document.getElementById(col + 'SortIcon');
+      if (icon) {
+        icon.innerHTML = (sortState.column === col)
+          ? (sortState.ascending ? '&#x25B2;' : '&#x25BC;')
+          : '';
+      }
+    });
+  }
+
+
 
 </script>

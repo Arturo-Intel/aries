@@ -20,25 +20,25 @@ function sortTable(nametable, columnIndex, customOrder=[]) {
     
 }
 
-function restoreOriginalOrder(nametable) {
-    document.getElementById('header-sentiment').setAttribute('data-sort','desc');
-    document.getElementById('header-SEG').setAttribute('data-sort','asc');
+// function restoreOriginalOrder(nametable) {
+//     document.getElementById('header-sentiment').setAttribute('data-sort','desc');
+//     document.getElementById('header-SEG').setAttribute('data-sort','asc');
    
-    const table = document.getElementById(nametable);
-    const tbody = table.getElementsByTagName('tbody')[0];
-    const rows = Array.from(tbody.getElementsByTagName('tr'));
+//     const table = document.getElementById(nametable);
+//     const tbody = table.getElementsByTagName('tbody')[0];
+//     const rows = Array.from(tbody.getElementsByTagName('tr'));
 
-    const header = table.tHead.rows[0].cells[2];
-    const sortDirection = header.getAttribute('data-sort');
+//     const header = table.tHead.rows[0].cells[2];
+//     const sortDirection = header.getAttribute('data-sort');
 
-    rows.sort((a, b) => {
-        return sortDirection === 'asc' ?  parseInt(a.dataset.originalIndex, 10) - parseInt(b.dataset.originalIndex, 10) : parseInt(b.dataset.originalIndex, 10) - parseInt(a.dataset.originalIndex, 10);
-    });
+//     rows.sort((a, b) => {
+//         return sortDirection === 'asc' ?  parseInt(a.dataset.originalIndex, 10) - parseInt(b.dataset.originalIndex, 10) : parseInt(b.dataset.originalIndex, 10) - parseInt(a.dataset.originalIndex, 10);
+//     });
 
-    rows.forEach(row => tbody.appendChild(row));
-    header.setAttribute('data-sort', sortDirection === 'asc' ? 'desc' : 'asc');
-    countRows(nametable);
-}
+//     rows.forEach(row => tbody.appendChild(row));
+//     header.setAttribute('data-sort', sortDirection === 'asc' ? 'desc' : 'asc');
+//     countRows(nametable);
+// }
 
 
 function urgentCases(){
@@ -112,18 +112,52 @@ function restartFilters(nametable) {
     filterTable(nametable);
 }
 
-function showRow(row){
-    let checkbox = document.getElementById('closedCheckbox').classList
-    if(!checkbox.contains('checked')) {
-        if(row.dataset.caseStatus == "closed"){
-            row.style.display = 'none'; 
-        } else {
-            row.style.display = ''; 
+function showRow(nametable){
+    const table = document.getElementById(nametable);
+    const rows = table.tBodies[0].rows;
+    const toHide = [];
+    const toShow = [];
+    
+    let open_checkbox = document.getElementById('openCheckbox').classList.contains('checked');
+
+    for (let i = 0; i < rows.length; i++) {
+        if (!open_checkbox && rows[i].dataset.caseStatus == "open") {
+            toHide.push(i); // Save indices or row references
+        } 
+        if (open_checkbox && rows[i].dataset.caseStatus == "open") {
+            toShow.push(i);
         }
-    } else {
-        row.style.display = ''; 
     }
-    countRows('caseTable');
+
+    for (const i of toHide) {
+        //rows[i].classList.add('hide-row');
+    }
+    
+    for (const i of toShow) {
+        //rows[i].classList.remove('hide-row');
+    }
+
+    console.log("hide " + toHide.length);
+    console.log("swho " + toShow.length)
+    // paginar
+    
+    // for (let i = 0; i < rows.length; i++) {
+    //     let row = rows[i];
+    //     let closed_checkbox = document.getElementById('closedCheckbox').classList;
+    //     let open_checkbox = document.getElementById('openCheckbox').classList.contains('checked');
+    //     let L4_checkbox = document.getElementById('l4Checkbox').classList;
+    //     let L5_closed_checkbox = document.getElementById('l5Checkbox').classList;
+        
+    //     row.classList.remove('hide-row');
+    //     // if(!closed_checkbox.contains('checked') && row.dataset.caseStatus == "closed") {
+    //     //     row.style.display = 'none'; 
+    //     // }
+    //     if(!open_checkbox && row.dataset.caseStatus == "open") {
+    //         row.classList.add('hide-row');
+    //     }
+
+    // }
+    //
 }
 
 function countRows(nametable) {
@@ -132,7 +166,7 @@ function countRows(nametable) {
     const tbody = table.getElementsByTagName('tbody')[0];
     const rows = Array.from(tbody.getElementsByTagName('tr'));
     rows.forEach(row => {
-        if (row.style.display !== 'none') {
+        if (!row.classList.contains('hide-row')) {
             visibleRowCount++;
         }
     });
