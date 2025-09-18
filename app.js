@@ -177,7 +177,7 @@ app.get('/redirect', async (req, res) => {
     const [userExists, fue] = await db.query('SELECT EXISTS ( SELECT 1 FROM pses WHERE email = ?) AS email_exists;', [userInfo.data.mail])
     
     if(!userExists[0]['email_exists']){
-      await db.query('INSERT INTO pses (email, github, type) VALUES (?,?,?);',[userInfo.data.mail, '', 'L1'])
+      await db.query('INSERT INTO pses (email, github, type) VALUES (?,?,?);',[userInfo.data.mail, '', 'visitor'])
     }
 
     const [userExtraInfo, fxtraInfo] = await db.query('SELECT * FROM pses WHERE email = ?', userInfo.data.mail)
@@ -535,8 +535,13 @@ app.get('/github/:id', checkSession, async (req, res) => {
       row.raw = row.raw !== undefined ? JSON.parse(row.raw) : "{}"
     });
 
-    const [pses, ff] = await db.query('SELECT email FROM pses')
-    
+    let pses = [];
+    if(req.session.user.type == "admin"){
+      [pses, ff] = await db.query('SELECT email FROM pses')
+    } else {
+      pses = [{"email" : req.session.user.email}]
+    }
+
     res.render('details', {
       title: 'Github Case ['+ id +']', 
       user: req.session.user,

@@ -33,7 +33,7 @@
                         <input type="text" class="url-input form-control" value="<%= data.isvc_url%>" />
                         <button class="url-input submit-btn" data-type="isvc">update</button>
                         <button class="url-input cancel-btn">cancel</button>
-                        <button class="edit-btn">Edit</button>
+                        <button class="risk edit-btn">Edit</button>
                     </li>
                     <li class="d-flex align-items-center gap-2">
                         <span>HSD:</span>
@@ -41,13 +41,14 @@
                         <input type="text" class="url-input form-control" value="<%= data.hsd %>" />
                         <button class="url-input submit-btn" data-type="hsd">update</button>
                         <button class="url-input cancel-btn">cancel</button>
-                        <button class="edit-btn">Edit</button>
+                        <button class="risk edit-btn">Edit</button>
                     </li>
                 </ul>
             </div>
         </div>
         <div id="right" class="col-5 ">
-            <div class="text-end"><button id="refresh_data">Update AI Analysis</button></div>
+            <div class="text-end">
+                <button class="risk" id="refresh_data">Update AI Analysis</button></div>
             <div class="mt-3">
                 <div class="d-flex align-items-center justify-content-end"> 
                     <span style="margin-right: .5rem !important">Owner:</span>
@@ -59,7 +60,7 @@
                             <% }); %>
                             <option value="Not Assigned">Not Assigned</option>
                         </select>
-                        <button type="submit">update</button>
+                        <button class="risk" type="submit">update</button>
                     </form>
                 </div>
                 <div class="d-flex flex-column justify-content-center align-items-center">
@@ -111,10 +112,10 @@
                 <button class="nav-link" id="pse-feedback-tab" data-bs-toggle="tab" data-bs-target="#pse_feedback" type="button" role="tab" aria-controls="pse_feedback" aria-selected="false">PSE Feedback</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="article-tab" data-bs-toggle="tab" data-bs-target="#article_helper" type="button" role="tab" aria-controls="article_helper" aria-selected="false">Article</button>
+                <button class="risk nav-link" id="article-tab" data-bs-toggle="tab" data-bs-target="#article_helper" type="button" role="tab" aria-controls="article_helper" aria-selected="false">Article</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="HSD-tab" data-bs-toggle="tab" data-bs-target="#hsd_helper" type="button" role="tab" aria-controls="hsd_helper" aria-selected="false">HSD helper</button>
+                <button class="risk nav-link" id="HSD-tab" data-bs-toggle="tab" data-bs-target="#hsd_helper" type="button" role="tab" aria-controls="hsd_helper" aria-selected="false">HSD helper</button>
             </li>
         </ul>
         <div class="tab-content aries-tab" id="caseTabsContent">
@@ -421,6 +422,13 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        <% if (user.type == "visitor") { %>
+            const risk_obj = document.querySelectorAll('.risk');
+            risk_obj.forEach(obj => { 
+                obj.disabled = true;
+            });
+        <% } %>
+
         const refresh_button = document.getElementById('refresh_data');
         refresh_button.addEventListener('click', async function() {
             loading.style.display = 'block';
