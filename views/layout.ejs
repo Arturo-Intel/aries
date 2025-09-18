@@ -18,7 +18,7 @@
         <div class="container-fluid">
             <a class="navbar-brand intel-navbar-brand d-flex align-items-center" href="/">
                 <img src="/img/logo-energyblue-white-72px.svg" alt="Logo" width="93" height="38" class="d-inline-block align-text-top">
-                <span class="fs-4 ms-2 intel-navbar-title d-none d-md-block">Analytical Resolution Interface for Engineering Support</span>
+                <span class="fs-4 ms-2 intel-navbar-title d-none d-md-block">Analytical Resolution Intelligence for Engineering Support</span>
             </a>
 
             <div class="offcanvas intel-offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
@@ -27,8 +27,14 @@
                 <div class="offcanvas-body">
                     <% if (user) { %>
                     <span class="navbar-text intel-navbar-text ms-auto d-none d-lg-block">
-                        <img src="<%= user.photoUrl %>" alt="" width="32" height="32" class="rounded-circle me-2">
-                        <%= user.name  %>
+                        <span style="display: flex; align-items: center;">
+                            <img src="<%= user.photoUrl %>" alt="" width="32" height="32" class="rounded-circle me-2">
+                            <span style="display: flex; flex-direction: column; align-items: flex-end; line-height: 1;">
+                                <span><%= user.name %></span>
+                                <span style="font-size: smaller; color: #888; margin-top: 2px; text-transform: uppercase;">
+                                    <%= user.type %></span>
+                            </span>
+                        </span>
                     </span>
                     <% } %>
                 </div>

@@ -23,7 +23,7 @@
               <button id="urgentButton" class="btn btn-outline-danger">Urgent Cases</button>
             </div>
             <div class="col-12 mb-2">
-              <input type="checkbox" id="autorefresh" checked><span class="ms-2">Auto-refresh</span>
+              <input type="checkbox" id="autorefresh" checked ><span id="autorefreshLabel" class="ms-2">Auto-refresh</span>
             </div>
           </div>
         </div>
@@ -152,6 +152,34 @@
   let urgentCasesActive = false;
   const sortState = { column: 'title', ascending: true };
   let autorefresh = true;
+  const refreshInterval = 900000; //  15×60×1000 ms - 15min
+  let timeLeft = refreshInterval / 1000; // Min
+
+  function updateRefreshTitle() {
+    const val = `${(timeLeft/60).toFixed(0)} minutes left.`;
+    document.getElementById('autorefresh').title = val;
+    document.getElementById('autorefreshLabel').title = val;
+  }
+
+  function startRefreshCountdown() {
+    timeLeft = refreshInterval / 1000;
+    updateRefreshTitle();
+
+    const timer = setInterval(() => {
+      if (!autorefresh) {
+        clearInterval(timer);
+        checkbox.title = "Auto-refresh paused";
+        return;
+      }
+      timeLeft--;
+      updateRefreshTitle();
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        scheduleLoadOpenCases();
+      }
+    }, 1000);
+  }
+
 
   function updateCasesCount() {
     const countDiv = document.getElementById('nCases');
@@ -186,11 +214,9 @@
     
     if (!autorefresh) return;
     loadOpenCases();
-    setTimeout(scheduleLoadOpenCases, 900000); // 15×60×1000 ms - 15min
-    
+    setTimeout(scheduleLoadOpenCases, refreshInterval); // 15×60×1000 ms - 15min
+    startRefreshCountdown(); 
   }
-
-  
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('openCheckbox').addEventListener('change', refreshTableOnFilter);

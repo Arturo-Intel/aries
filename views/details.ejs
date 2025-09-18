@@ -422,7 +422,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        <% if (user.type == "visitor") { %>
+        <% if (user.type == "guest") { %>
             const risk_obj = document.querySelectorAll('.risk');
             risk_obj.forEach(obj => { 
                 obj.disabled = true;
