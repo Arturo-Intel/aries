@@ -17,8 +17,15 @@
   <div id="main" class="url-input"> 
     <div id="tools" >
       <div class="row gx-2">
-        <div class="col-md-4">
-          <button id="urgentButton" class="btn btn-outline-danger">Urgent Cases</button>
+        <div class="col-md-4 d-flex flex-column">
+          <div class="row">
+            <div class="col-12 mb-2">
+              <button id="urgentButton" class="btn btn-outline-danger">Urgent Cases</button>
+            </div>
+            <div class="col-12 mb-2">
+              <input type="checkbox" id="autorefresh" checked><span class="ms-2">Auto-refresh</span>
+            </div>
+          </div>
         </div>
         <div class="col-md-4">
           <div class="input-group">
@@ -144,6 +151,7 @@
   let currentSearch = '';
   let urgentCasesActive = false;
   const sortState = { column: 'title', ascending: true };
+  let autorefresh = true;
 
   function updateCasesCount() {
     const countDiv = document.getElementById('nCases');
@@ -174,12 +182,26 @@
     }
   }
 
+  function scheduleLoadOpenCases() {
+    
+    if (!autorefresh) return;
+    loadOpenCases();
+    setTimeout(scheduleLoadOpenCases, 900000); // 15×60×1000 ms - 15min
+    
+  }
+
+  
+
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('openCheckbox').addEventListener('change', refreshTableOnFilter);
     document.getElementById('closedCheckbox').addEventListener('change', refreshTableOnFilter);
     document.getElementById('L4Checkbox').addEventListener('change', refreshTableOnFilter);
     document.getElementById('L5Checkbox').addEventListener('change', refreshTableOnFilter);
     document.getElementById('toMeCheckbox').addEventListener('change', refreshTableOnFilter);
+    document.getElementById('autorefresh').addEventListener('change', function() {
+      autorefresh = this.checked;
+      if (autorefresh) scheduleLoadOpenCases();
+    });
     loadOpenCases();
 
     document.querySelectorAll('.sortable').forEach(th => {
@@ -218,6 +240,7 @@
         checkbox.disabled = urgentCasesActive;
       });
     });
+    scheduleLoadOpenCases();
   });
 
   async function loadOpenCases() {
