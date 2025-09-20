@@ -216,7 +216,7 @@ footer {
   padding-top: 40px;
 }
 
-#loading {
+#loading, .KPIloading {
   display: none; 
   top: 50%;
   left: 50%;
@@ -340,4 +340,39 @@ button:disabled {
   background-color: #ccc;
   color: #666;
   cursor: not-allowed;
+}
+
+.kpi-card {
+  position: relative;
+  border-left: 6px solid #007bff;
+  height: 300px;
+  transition: box-shadow 0.2s;
+}
+.kpi-card:hover {
+  box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+.kpi-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.kpi-value {
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.wip-stamp {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: #ffc107;
+  color: #333;
+  font-weight: bold;
+  font-size: 1rem;
+  padding: 0.2em 0.7em;
+  border-radius: 8px;
+  box-shadow: 1px 1px 6px rgba(0,0,0,0.1);
+  letter-spacing: 2px;
+  z-index: 2;
+  pointer-events: none;
+  transform: rotate(30deg);
 }

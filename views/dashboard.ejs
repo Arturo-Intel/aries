@@ -2,13 +2,121 @@
 <div >
   <div class="row gx-2 text-center">
     <div class="col-md-3">
-      <div class="aries-marco">KPI 1</div></div>
+      <div class="aries-marco">
+
+  <div id="KPI1loading" class="KPIloading"></div>
+  <div id="KPI1main" class="kpi-card text-center p-3 shadow-sm rounded bg-white url-input">
+    <div class="kpi-title mb-2">
+      <i class="bi bi-inbox-fill" style="font-size: 2rem; color: #007bff;"></i><br>
+      Summary
+    </div>
+    <div class="row">
+      <div class="col-12 mb-1">
+        <span class="kpi-label text-muted">Total Cases</span><br>
+        <span class="kpi-value display-4" id="kpi-totalCases">0</span>
+      </div>
+      <div class="col-6">
+        <i class="bi bi-person-lines-fill" style="font-size: 1.2rem; color: #17a2b8;"></i>
+        <span class="kpi-label text-muted">L4 Open</span><br>
+        <span class="kpi-value h3" id="kpi-l4open">0</span>
+      </div>
+      <div class="col-6">
+        <i class="bi bi-person-lines-fill" style="font-size: 1.2rem; color: #20c997;"></i>
+        <span class="kpi-label text-muted">L5 Open</span><br>
+        <span class="kpi-value h3" id="kpi-l5open">0</span>
+      </div>
+    </div>
+  </div>
+
+      </div>
+    </div>
+    
     <div class="col-md-3">
-      <div class="aries-marco">KPI 2</div></div>
+      <div class="aries-marco">
+
+  <div id="KPI2loading" class="KPIloading"></div>
+  <div id="KPI2main" class="kpi-card text-center p-3 shadow-sm rounded bg-white url-input">
+    <div class="kpi-title mb-2">
+      <i class="bi bi-shield-fill" style="font-size: 2rem; color: #007bff;"></i><br>
+      Deflection
+    </div>
+    <div class="row">
+      <div class="col-12 mb-1">
+        <span class="kpi-label text-muted">-------</span><br>
+        <span class="kpi-value display-4" id="kpi-deflection">0</span>
+      </div>
+      <div class="col-6">
+        <i class="bi bi-person-lines-fill" style="font-size: 1.2rem; color: #17a2b8;"></i>
+        <span class="kpi-label text-muted">L4 Closed</span><br>
+        <span class="kpi-value h3" id="kpi-l4closed">0</span>
+      </div>
+      <div class="col-6">
+        <i class="bi bi-person-lines-fill" style="font-size: 1.2rem; color: #20c997;"></i>
+        <span class="kpi-label text-muted">L5 Closed</span><br>
+        <span class="kpi-value h3" id="kpi-l5closed">0</span>
+      </div>
+    </div>
+  </div>
+    
+      </div>
+    </div>
     <div class="col-md-3">
-      <div class="aries-marco">KPI 3</div></div>
+      <div class="aries-marco">
+
+ <div id="KPI3loading" class="KPIloading"></div>
+  <div id="KPI3main" class="kpi-card text-center p-3 shadow-sm rounded bg-white url-input">
+    <div class="kpi-title mb-2">
+      <i class="bi bi-person-check-fill" style="font-size: 2rem; color: #007bff;"></i><br>
+      Asigned Cases
+    </div>
+    <div class="row">
+      <div class="col-12 mb-1">
+        <span class="kpi-label text-muted">-------</span><br>
+        <span class="kpi-value display-4" id="kpi-MinetotalCases">0</span>
+      </div>
+      <div class="col-6">
+        <i class="bi bi-folder2-open" style="font-size: 1.2rem; color: #17a2b8;"></i>
+        <span class="kpi-label text-muted"><br>Open</span><br>
+        <span class="kpi-value h3" id="kpi-MineOpen">0</span>
+      </div>
+      <div class="col-6">
+        <i class="bi bi-folder-symlink-fill" style="font-size: 1.2rem; color: #20c997;"></i>
+        <span class="kpi-label text-muted">Closed</span><br>
+        <span class="kpi-value h3" id="kpi-MineClosed">0</span>
+      </div>
+    </div>
+  </div>
+
+      </div></div>
     <div class="col-md-3">
-      <div class="aries-marco">KPI 4</div></div>
+      <div class="aries-marco">
+
+<div id="KPI4loading" class="KPIloading"></div>
+  <div id="KPI4main" class="kpi-card text-center p-3 shadow-sm rounded bg-white url-input">
+    <div class="wip-stamp">WIP</div>
+    <div class="kpi-title mb-2">
+      <i class="bi bi-graph-up-arrow" style="font-size: 2rem; color: #007bff;"></i><br>
+      My Support Grading Experience
+    </div>
+    <div class="row">
+      <div class="col-12 mb-1">
+        <span class="kpi-label text-muted">Excellent!</span><br>
+        <span class="display-4" style="font-size: 5rem" id="kpi-c">🥳</span>
+      </div>
+      <!-- <div class="col-6">
+        <i class="bi bi-folder2-open" style="font-size: 1.2rem; color: #17a2b8;"></i>
+        <span class="kpi-label text-muted"><br>Open</span><br>
+        <span class="kpi-value h3" id="kpi-a">0</span>
+      </div>
+      <div class="col-6">
+        <i class="bi bi-folder-symlink-fill" style="font-size: 1.2rem; color: #20c997;"></i>
+        <span class="kpi-label text-muted">Closed</span><br>
+        <span class="kpi-value h3" id="kpi-b">0</span>
+      </div> -->
+    </div>
+  </div>
+
+      </div></div>
   </div>
 </div>
 
@@ -228,6 +336,10 @@
       autorefresh = this.checked;
       if (autorefresh) scheduleLoadOpenCases();
     });
+    loadKPI1();
+    loadKPI2();
+    loadKPI3();
+    loadKPI4();
     loadOpenCases();
 
     document.querySelectorAll('.sortable').forEach(th => {
@@ -266,8 +378,79 @@
         checkbox.disabled = urgentCasesActive;
       });
     });
+
+
     scheduleLoadOpenCases();
   });
+
+  async function loadKPI1() {
+    showKPILoading(true, 1);
+    try {
+      const response = await fetch('/numeros/all');
+      data = await response.json();
+      document.getElementById('kpi-totalCases').textContent = data[0].totalCases;
+      document.getElementById('kpi-l4open').textContent = data[0].L4open;
+      document.getElementById('kpi-l5open').textContent = data[0].L5open;
+
+    } catch (e) {
+      console.error('Failed to fetch all cases', e);
+    } finally {
+      showKPILoading(false, 1);
+    }
+  }
+  
+  async function loadKPI2() {
+    showKPILoading(true, 2);
+    try {
+      const response = await fetch('/numeros/all');
+      data = await response.json();
+      deflection = ( data[0].L4closed * 100) / (data[0].L4closed + data[0].L5closed);
+      document.getElementById('kpi-deflection').textContent = deflection.toFixed(2)+"%";
+      document.getElementById('kpi-l4closed').textContent = data[0].L4closed;
+      document.getElementById('kpi-l5closed').textContent = data[0].L5closed;
+
+    } catch (e) {
+      console.error('Failed to fetch all cases', e);
+    } finally {
+      showKPILoading(false, 2);
+    }
+  }
+
+  async function loadKPI3() {
+    showKPILoading(true, 3);
+    try {
+      const response = await fetch('/numeros/<%= user.email%>');
+      data = await response.json();
+     
+      document.getElementById('kpi-MinetotalCases').textContent = data[0].totalCases;
+      document.getElementById('kpi-MineOpen').textContent = data[0].openCases;
+      document.getElementById('kpi-MineClosed').textContent = data[0].closedCases;
+
+    } catch (e) {
+      console.error('Failed to fetch all cases', e);
+    } finally {
+      showKPILoading(false, 3);
+    }
+  }
+
+  async function loadKPI4() {
+    showKPILoading(true, 4);
+    try {
+
+
+    } catch (e) {
+      console.error('Failed to fetch all cases', e);
+    } finally {
+      showKPILoading(false, 4);
+    }
+  }
+
+
+  function showKPILoading(isLoading, num) {
+    document.getElementById('KPI'+num+'loading').style.display = isLoading ? 'block' : 'none';
+    document.getElementById('KPI'+num+'main').style.display = isLoading ? 'none' : 'block';
+  }
+
 
   async function loadOpenCases() {
     showLoading(true);

@@ -662,6 +662,56 @@ app.get('/cases/open-list', async(req, res)=> {
   res.send(rows[0].numbers);
 });
 
+app.get('/cases/count', async(req,res)=> {
+
+  const [counts] = await db.query(`
+    SELECT
+      COUNT(*) AS totalCases,
+      SUM(CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(case_info, '$.state')) = "closed"
+                AND isvc_url IS NOT NULL AND hsd <> "" THEN 1 ELSE 0 END) AS L5closed,
+      SUM(CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(case_info, '$.state')) = "closed"
+                AND isvc_url IS NOT NULL AND hsd = "" THEN 1 ELSE 0 END) AS L4closed,
+      SUM(CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(case_info, '$.state')) = "closed"
+                AND isvc_url IS NULL THEN 1 ELSE 0 END) AS NoISVCclosed,
+      SUM(CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(case_info, '$.state')) = "open"
+                AND isvc_url IS NOT NULL AND hsd <> "" THEN 1 ELSE 0 END) AS L5open,
+      SUM(CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(case_info, '$.state')) = "open"
+                AND isvc_url IS NOT NULL AND hsd = "" THEN 1 ELSE 0 END) AS L4open,
+      SUM(CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(case_info, '$.state')) = "open"
+                AND isvc_url IS NULL THEN 1 ELSE 0 END) AS NoISVCopen
+    FROM cases
+  `);
+  await db.query(
+    `UPDATE numeros
+      SET l4open = ?, l4closed = ?, l5open = ?, l5closed = ?, NoISVCopen = ?, NoISVCclosed = ?, totalCases = ?
+    WHERE id = 0`,
+    [
+      counts[0].L4open, counts[0].L4closed, counts[0].L5open, counts[0].L5closed,
+      counts[0].NoISVCopen, counts[0].NoISVCclosed, counts[0].totalCases
+    ]
+  );
+  res.send(200);
+});
+
+app.get('/numeros/all', async(req,res)=> {
+  const response = await fetch("http://localhost:3000/cases/count/");
+  let [rows, f] = await db.query('SELECT * FROM numeros WHERE id = 0')
+  res.json(rows);
+});
+
+app.get('/numeros/:from', async(req,res)=> {
+  let email = req.params.from;
+  let [rows, f] = await db.query(`
+    SELECT 
+    COUNT(*) as totalCases,
+    SUM (CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(case_info, '$.state')) = "closed"
+         THEN 1 ELSE 0 END) as closedCases,
+    SUM (CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(case_info, '$.state')) = "open"
+         THEN 1 ELSE 0 END) as openCases      
+    FROM cases WHERE owner = ?`,[email]);
+  res.json(rows);
+})
+
 app.get('/old_test', async (req, res) => {
     res.render('test', {
         title: 'Test',
