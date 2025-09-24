@@ -655,7 +655,7 @@ app.get('/cases/latest', async (req, res) => {
 
 app.get('/cases/open-list', async(req, res)=> {
   let [rows, f] = await db.query(`
-    SELECT JSON_ARRAYAGG(github_num) AS numbers
+    SELECT JSON_ARRAYAGG(github_num ORDER BY github_num ASC) AS numbers
     FROM cases
     WHERE JSON_UNQUOTE(JSON_EXTRACT(case_info, '$.state')) = "open"
   `);
