@@ -49,8 +49,8 @@
     <div class="bg-intel" id="sidebar-wrapper">
         <div class="list-group rounded-list-group">
             <a title="Dashboard" href="/dashboard" class="list-group-item list-group-item-action bg-intel"><i class="fas fa-tachometer-alt"></i></a>
+            <a title="My HSDEs cases" href="/hsd-list" class="risk list-group-item list-group-item-action bg-intel"><img src="/img/es-logo.png" style="width:45px;"></a>
             <% if (user.type == 'admin') { %>
-            <a title="WIP" href="/test" class="list-group-item list-group-item-action bg-intel"><i class="fas fa-link"></i></a>
             <a title="WIP" href="/test" class="list-group-item list-group-item-action bg-intel"><i class="fas fa-chart-bar"></i></a>
             <a title="WIP" href="/test" class="list-group-item list-group-item-action bg-intel"><i class="fas fa-calendar-alt"></i></a>
             <% } %>
@@ -73,6 +73,20 @@
            
         </div>
     </div>
+    <script>
+        <% if (user.type == "guest") { %>
+            const risk_obj = document.querySelectorAll('.risk');
+            risk_obj.forEach(obj => { 
+                if(obj instanceof HTMLAnchorElement) {
+                    obj.classList.add('disabled');
+                    obj.addEventListener('click', function(e) {  e.preventDefault(); });
+                } else {
+                  obj.disabled = true;
+                }
+            });
+            console.log(risk_obj)
+        <% } %>
+    </script>
     <!-- <footer class="bg-light text-center text-lg-start">
         <div class="text-center intel-footer-bg-blue">
             <% if (user.extra === "TRUE") { %>
@@ -82,7 +96,10 @@
             <% } %>
         </div>
     </footer> -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous">
+
+        
+    </script>
 
 
 </body>

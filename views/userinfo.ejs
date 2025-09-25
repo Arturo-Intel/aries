@@ -17,10 +17,20 @@
             <button class="url-input cancel-btn">cancel</button>
             <button class="edit-btn">Edit</button><br>
         </div>
-        
+      
+        <div class="d-flex align-items-center gap-2">
+            <span><strong>IDSID: </strong><%= pse.idsid %></span>
+            <input type="text" class="url-input form-control" value="<%= pse.idsid %>" />
+            <button class="url-input submit-btn" data-type="idsid">update</button>
+            <button class="url-input cancel-btn">cancel</button>
+            <button class="edit-btn">Edit</button><br>
+        </div>
+
         <span><strong>Level: </strong><%= pse.type %></span>
         <button id="levelup-btn" title="Request for Account Level Upgrade">↑</button><br>
-      </div>
+
+    </div>
+    
 </div>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -56,6 +66,23 @@
                     const new_value = inputField.value;
                     try {
                         const response = await fetch('/users/githubalias/<%= pse.id %>', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ type, new_value })
+                        });
+                        if (response.ok) {
+                            window.location.href = `/userinfo`;
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+                } else if(type == "idsid") {
+                    const inputField = this.previousElementSibling;
+                    const new_value = inputField.value;
+                    try {
+                        const response = await fetch('/users/idsid/<%= pse.id %>', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'

@@ -34,6 +34,10 @@
                         <button class="url-input submit-btn" data-type="isvc">update</button>
                         <button class="url-input cancel-btn">cancel</button>
                         <button class="risk edit-btn">Edit</button>
+                        <button onclick="window.open('https://isvc.lightning.force.com/lightning/r/Report/00O4U000004TczZUAS/view', '_blank', 'noopener noreferrer')"
+                        title="Open Salesforce IGCIT Report">
+                             ISVC
+                        </button>
                     </li>
                     <li class="d-flex align-items-center gap-2">
                         <span>HSD:</span>
@@ -95,6 +99,31 @@
             </ul>
         </div>
         
+    </div>
+
+    <div class="row aries-marco">
+        <div id="loading_hsd" class="basicLoading"></div>
+        <div id="main_hsd" class="url-input">
+            <div class="d-flex gap-2 justify-content-end mb-1">
+                <span class="col-3">Possible related <img src="/img/es-logo.png" style="width:45px;"> cases for </span>
+                <input id="searchInput" type="text" class="col-7" value="<%=data.ai_analysis.app_name%>" />
+                <button id="searchHSD" class="col-1" data-type="isvc" >Search</button>
+            </div>            
+            <table  class="aries-table" >
+                <thead>
+                    <tr>
+                        <th>title</th>
+                        <th>status: reason</th>
+                        <th>age</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+            
+                </tbody>
+            </table>
+            <div id="status-box"></div>
+        </div>
     </div>
 
     <div id="case_tabs" class="pt-3" >
@@ -257,7 +286,7 @@
     </div>
 
     <!-- <div class="json-wrap aries-marco" >
-        <% JSON.stringify(data, null, 2) %>
+        <%JSON.stringify(data, null, 2) %>
     </div>  -->
 </div>
 <script>
@@ -421,7 +450,67 @@
         }
     }
 
+    function showLoading(isLoading) {
+        document.getElementById('loading_hsd').style.display = isLoading ? 'block' : 'none';
+        document.getElementById('main_hsd').style.display = isLoading ? 'none' : 'block';
+    }
+
+    async function loadHSDs(text='<%=data.ai_analysis.app_name%>') {
+        showLoading(true);
+        try{
+            const response = await fetch('/hsd/fetch/'+text);
+            hsds = await response.json();  
+            renderTableBodySafe(hsds)
+        } catch (e) {
+            console.error('Failed to fetch open cases', e);
+        } finally {
+           showLoading(false);
+        }
+    }
+
+    function renderTableBodySafe(data) {
+        document.getElementById('tbody').innerHTML = '';
+        document.getElementById('status-box').innerHTML = '';
+        for (let i = 0; i < data.length; i++) {
+            let row = data[i];
+            const tr = document.createElement('tr');
+
+            [row.title, row.status, row.age].forEach((cell, i) => {
+                const td = document.createElement('td');
+                if (i === 0) {
+                    const a = document.createElement('a');
+                    a.href = `https://hsdes.intel.com/resource/${row.id}`;
+                    a.target = "_blank";
+                    a.rel = "noopener noreferrer";
+                    a.textContent = row.title;
+                    td.appendChild(a);
+                }
+                else if (i === 1) {
+                    td.textContent = row.status + ": "+ row.reason
+                } else {
+                    td.textContent = cell;
+                }
+                tr.appendChild(td);
+            });
+            const td = document.createElement('td')
+            td.textContent ='+'
+            tr.appendChild(td);
+
+            document.getElementById('tbody').appendChild(tr);
+            if (i > 7) break;            
+        }
+        const status = document.createElement('div')
+        status.textContent =  "HSDES found: " + data.length;
+        document.getElementById('status-box').appendChild(status);
+    }
+
+    document.getElementById('searchHSD').addEventListener('click', function(){
+        const appName = document.getElementById('searchInput').value;
+        loadHSDs(appName);
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
+       
         <% if (user.type == "guest") { %>
             const risk_obj = document.querySelectorAll('.risk');
             risk_obj.forEach(obj => { 
@@ -559,8 +648,9 @@
         document.getElementById('user-driver').innerHTML = "Driver: " + driver;
         document.getElementById('sge_emoji').innerHTML=emoji;
         document.getElementById('sge_emoji').title =title;
-
+        
         main.style.display = 'block';
+        loadHSDs();
     });
 </script>
 

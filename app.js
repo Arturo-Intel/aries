@@ -14,7 +14,7 @@ const { Writable } = require('stream');
 
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const proxyAgent = new HttpsProxyAgent('http://proxy-chain.intel.com:912');
-
+const https = require('https');
 
 
 const app = express();
@@ -181,13 +181,14 @@ app.get('/redirect', async (req, res) => {
     }
 
     const [userExtraInfo, fxtraInfo] = await db.query('SELECT * FROM pses WHERE email = ?', userInfo.data.mail)
-
+   
     // Store user information in session
     req.session.user = {
-        wwid: userInfo.data.jobTitle, 
+        wwid: userInfo.data.jobTitle,
+        idsid: userExtraInfo[0].idsid,
         name: userInfo.data.givenName + " " +userInfo.data.surname,
         githubAlias: userExtraInfo[0].github, 
-        data: userInfo.data,
+        //data: userInfo.data,
         email: userInfo.data.mail,
         extra: isadmin[0]['isAdmin'],
         type: userExtraInfo[0].type,
@@ -205,6 +206,8 @@ async function updatePSEInfo(req){
   const [userExtraInfo, fxtraInfo] = await db.query('SELECT * FROM pses WHERE email = ?', req.session.user.email)
   req.session.user.githubAlias = userExtraInfo[0].github;
   req.session.user.type = userExtraInfo[0].type;
+  req.session.user.idsid = userExtraInfo[0].idsid;
+
   req.session.save();
 }
 
@@ -648,6 +651,13 @@ app.post('/users/githubalias/:id', async (req, res) => {
   res.status(200).send('Github alias updated successfully');
 });
 
+app.post('/users/idsid/:id', async (req, res) => {
+  const idsid = req.body.new_value;
+  const user_id = parseInt(req.params.id, 10);
+  await db.query('UPDATE pses SET idsid = ? WHERE id = ?', [idsid, user_id ]);
+  res.status(200).send('idsid updated successfully');
+});
+
 app.get('/cases/latest', async (req, res) => {
   let [rows, f] = await db.query('SELECT MAX(github_num) FROM cases;')
   res.send(rows[0]['MAX(github_num)'].toString());
@@ -711,6 +721,85 @@ app.get('/numeros/:from', async(req,res)=> {
     FROM cases WHERE owner = ?`,[email]);
   res.json(rows);
 })
+
+app.get('/hsd-list', checkSession, async(req,res) => {
+    res.render('hsd-list', {
+      title: 'HSDES tickets',
+      user: req.session.user
+  });
+});
+
+app.get('/hsd/fetch/all', checkSession, async(req,res) => {
+
+  let idsid = req.session.user.idsid;
+  let data;
+  if(idsid == ""){
+    data= [];
+  }else {
+    const base64 = Buffer.from('sys_ics_hsd:119fa07c-48b4-4d4e-aa31-91ed8e90362a').toString('base64');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    
+    let bdata = await axios.post("https://hsdes-api.intel.com/rest/auth/query/execution/eql/?start_at=1&max_results=1000",
+      { eql: "select title, status, reason,  ip_sw_graphics.bug.submitted_by as 'submitted_by', ip_sw_graphics.bug.ics_owner as 'ics_owner', ip_sw_graphics.bug.submitted_date as 'submitted_date' where tenant = 'ip_sw_graphics' and subject = 'bug' and (ip_sw_graphics.bug.submitted_by= '"+ idsid +"' or ip_sw_graphics.bug.ics_owner = '"+ idsid +"') SORTBY submitted_date DESC"        
+      },  // Data body
+      {
+        headers: {
+          "Authorization": "Basic " + base64,
+          "content-type": "application/json"
+        },
+        httpsAgent: agent 
+      }
+    )
+    // 
+    for (const row of bdata.data.data) {
+      const sql = `
+          SELECT github_num
+          FROM cases
+          WHERE
+            CAST(REGEXP_SUBSTR(hsd, '[0-9]+$') AS UNSIGNED) = ?
+          LIMIT 1
+        `;
+      const [rows] = await db.query(sql, [row.id]);
+      row.github_num = rows[0]?.github_num || null;
+
+      const submittedDate = new Date(row.submitted_date);
+      const today = new Date();
+
+      const msPerDay = 24 * 60 * 60 * 1000;
+      const age = Math.ceil((today - submittedDate) / msPerDay);
+      row.age = age;
+    };
+    data = bdata.data.data
+  }
+  res.json(data)
+});
+
+app.get('/hsd/fetch/:text', async(req,res) => {
+  let text= req.params.text;
+  const base64 = Buffer.from('sys_ics_hsd:119fa07c-48b4-4d4e-aa31-91ed8e90362a').toString('base64');
+  const agent = new https.Agent({ rejectUnauthorized: false });
+  
+  let bdata = await axios.post("https://hsdes-api.intel.com/rest/auth/query/execution/eql/?start_at=1&max_results=1000",
+    { eql: "select title, status, reason, ip_sw_graphics.bug.submitted_date as 'submitted_date' where tenant = 'ip_sw_graphics' and subject = 'bug' and title CONTAINS '%"+ text +"%' SORTBY submitted_date DESC"        
+    },  // Data body
+    {
+      headers: {
+        "Authorization": "Basic " + base64,
+        "content-type": "application/json"
+      },
+      httpsAgent: agent 
+    }
+  )
+  for (const row of bdata.data.data) {
+    const submittedDate = new Date(row.submitted_date);
+    const today = new Date();
+
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const age = Math.ceil((today - submittedDate) / msPerDay);
+    row.age = age;
+  };
+  res.json(bdata.data.data)
+});
 
 app.get('/old_test', async (req, res) => {
     res.render('test', {

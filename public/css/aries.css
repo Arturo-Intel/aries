@@ -216,7 +216,7 @@ footer {
   padding-top: 40px;
 }
 
-#loading, .KPIloading {
+#loading, .KPIloading, .basicLoading{
   display: none; 
   top: 50%;
   left: 50%;
@@ -375,4 +375,14 @@ button:disabled {
   z-index: 2;
   pointer-events: none;
   transform: rotate(30deg);
+}
+
+a.disabled {
+  background-color: rgb(var(--navbar-bg-color)) !important;
+  cursor: not-allowed !important;
+  pointer-events:all !important;
+}
+
+a.disabled img{
+  filter: grayscale(100%);
 }

@@ -288,7 +288,6 @@
     }, 1000);
   }
 
-
   function updateCasesCount() {
     const countDiv = document.getElementById('nCases');
     countDiv.textContent = `Cases found: ${filteredCases.length}`;
@@ -445,12 +444,10 @@
     }
   }
 
-
   function showKPILoading(isLoading, num) {
     document.getElementById('KPI'+num+'loading').style.display = isLoading ? 'block' : 'none';
     document.getElementById('KPI'+num+'main').style.display = isLoading ? 'none' : 'block';
   }
-
 
   async function loadOpenCases() {
     showLoading(true);
