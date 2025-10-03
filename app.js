@@ -722,25 +722,29 @@ app.get('/numeros/:from', async(req,res)=> {
   res.json(rows);
 })
 
-app.get('/hsd-list', checkSession, async(req,res) => {
+app.get('/hsdes', checkSession, async(req,res) => {
     res.render('hsd-list', {
       title: 'HSDES tickets',
       user: req.session.user
   });
 });
 
-app.get('/hsd/fetch/all', checkSession, async(req,res) => {
+app.get('/hsd/fetch-mine/:text', checkSession, async(req,res) => {
+
 
   let idsid = req.session.user.idsid;
+  let text = req.params.text;
   let data;
   if(idsid == ""){
     data= [];
   }else {
     const base64 = Buffer.from('sys_ics_hsd:119fa07c-48b4-4d4e-aa31-91ed8e90362a').toString('base64');
     const agent = new https.Agent({ rejectUnauthorized: false });
+    const extra = text != "all"? "and title CONTAINS '%"+ text +"%'" : "";
     
+    const eql_string = "select title, status, reason,  ip_sw_graphics.bug.submitted_by as 'submitted_by', ip_sw_graphics.bug.ics_owner as 'ics_owner', ip_sw_graphics.bug.submitted_date as 'submitted_date' where tenant = 'ip_sw_graphics' and subject = 'bug' "+extra+" and (ip_sw_graphics.bug.submitted_by= '"+ idsid +"' or ip_sw_graphics.bug.ics_owner = '"+ idsid +"') SORTBY submitted_date DESC"
     let bdata = await axios.post("https://hsdes-api.intel.com/rest/auth/query/execution/eql/?start_at=1&max_results=1000",
-      { eql: "select title, status, reason,  ip_sw_graphics.bug.submitted_by as 'submitted_by', ip_sw_graphics.bug.ics_owner as 'ics_owner', ip_sw_graphics.bug.submitted_date as 'submitted_date' where tenant = 'ip_sw_graphics' and subject = 'bug' and (ip_sw_graphics.bug.submitted_by= '"+ idsid +"' or ip_sw_graphics.bug.ics_owner = '"+ idsid +"') SORTBY submitted_date DESC"        
+      { eql: eql_string   
       },  // Data body
       {
         headers: {
@@ -780,7 +784,7 @@ app.get('/hsd/fetch/:text', async(req,res) => {
   const agent = new https.Agent({ rejectUnauthorized: false });
   
   let bdata = await axios.post("https://hsdes-api.intel.com/rest/auth/query/execution/eql/?start_at=1&max_results=1000",
-    { eql: "select title, status, reason, ip_sw_graphics.bug.submitted_date as 'submitted_date' where tenant = 'ip_sw_graphics' and subject = 'bug' and title CONTAINS '%"+ text +"%' SORTBY submitted_date DESC"        
+    { eql: "select title, status, reason, ip_sw_graphics.bug.submitted_date as 'submitted_date', ip_sw_graphics.bug.submitted_by as 'submitted_by', ip_sw_graphics.bug.ics_owner as 'ics_owner' where tenant = 'ip_sw_graphics' and subject = 'bug' and title CONTAINS '%"+ text +"%' SORTBY submitted_date DESC"        
     },  // Data body
     {
       headers: {

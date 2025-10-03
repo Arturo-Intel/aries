@@ -1,14 +1,35 @@
 <% layout('layout') %>
 <div class="row align-items-center pt-3 aries-marco">
+    <div id="controls" class="row ">
+        <div class="col-md-2 d-flex justify-content-center">
+            <img src="/img/es-logo.png" style="width:100px;">
+        </div>
+        <div class="col-md-8">
+            <div class="d-flex">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search..."/>
+                <button id="searchHSD" class="risk btn btn-primary ms-2 " >Search</button>
+            </div>
+        </div>
+        <div class="col-md-2 d-flex flex-column justify-content-center">
+          <div class="row">
+            <div class="col-12">
+              <div class="d-flex justify-content-center align-items-center">
+                  <input type="checkbox" id="toMeCheckbox" checked>
+                  <span class="ms-2">Assigned to me</span>
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>  
     <div id="loading"></div>
-    <div id="main" class="url-input">
-        HSDES cases assigned or submitted by you.  
-        <table  class="aries-table" >
-            <thead>
+    <div id="main" class="url-input mt-2">
+        <table class="aries-table" >
+            <thead> 
             <tr>
                 <th>submitted_date</th>
                 <th>title</th>
                 <th>status: reason</th>
+                <th>submitted by/ ics_owner</th>
                 <th>case</th>
                 <th>age</th>
             </tr>
@@ -25,6 +46,12 @@
     let hsds;
     let idsid = "<%= user.idsid%>"
 
+    document.getElementById('searchHSD').addEventListener('click', function(){
+        const search_input = document.getElementById('searchInput').value;
+        loadHSDs(search_input.length > 0 ? search_input : "all");
+    });
+
+
     document.addEventListener('DOMContentLoaded', async () => { 
         await loadHSDs();
         if(hsds.length === 0) {
@@ -34,10 +61,12 @@
         }
     });
 
-    async function loadHSDs() {
+    async function loadHSDs(text="all") {
         showLoading(true);
         try{
-            const response = await fetch('/hsd/fetch/all');
+            onlyMe = document.getElementById('toMeCheckbox').checked;
+            
+            const response = onlyMe ? await fetch('/hsd/fetch-mine/'+text) : await fetch('/hsd/fetch/'+text);
             hsds = await response.json();  
             renderTableBodySafe(hsds)
             document.getElementById('status-box').innerHTML = renderProfileStatus(idsid, hsds);
@@ -49,6 +78,9 @@
     }
 
     function showLoading(isLoading) {
+        const container = document.getElementById('controls');
+        const controls = container.querySelectorAll('input, button, select, textarea');
+        controls.forEach(el => el.disabled = isLoading);
         document.getElementById('loading').style.display = isLoading ? 'block' : 'none';
         document.getElementById('main').style.display = isLoading ? 'none' : 'block';
     }
@@ -71,10 +103,11 @@
         return "";
     }
     function renderTableBodySafe(data) {
+        document.getElementById('tbody').innerHTML = '';
         data.forEach(row => {
             const tr = document.createElement('tr');
 
-            [row.submitted_date, row.title, row.status, row.github_num, row.age].forEach((cell, i) => {
+            [row.submitted_date, row.title, row.status, row.submitted_by ,row.github_num, row.age].forEach((cell, i) => {
             const td = document.createElement('td');
             if (i === 1) {
                 const a = document.createElement('a');
@@ -87,7 +120,10 @@
             else if (i === 2) {
                 td.textContent = row.status + ": "+ row.reason
             }
-            else if (i === 3) {
+            else if (i === 3) { 
+                td.textContent = row.submitted_by + " / "+ row.ics_owner
+            }
+            else if (i === 4) {
                 const a = document.createElement('a');
                 a.href = `/github/${row.github_num}`;
                 a.textContent = row.github_num;
