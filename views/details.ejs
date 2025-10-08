@@ -520,7 +520,7 @@
                 obj.disabled = true;
             });
         <% } %>
-
+<% if (user.type == 'admin') { %>
         const refresh_button = document.getElementById('refresh_data');
         refresh_button.addEventListener('click', async function() {
             loading.style.display = 'block';
@@ -537,7 +537,7 @@
                 console.error('Error:', error);
             }
         });
-
+<% } %>
         const tabContent = document.querySelector('.tab-content');
         const analysisTab = document.getElementById('analysis-tab');
         analysisTab.addEventListener('click', function() {
