@@ -282,6 +282,69 @@ async function api_github_call(id) {
   }
 }
 
+  // get SSU url from github data
+async function findSSUpath(context, id) {
+    console.log('[CASO '+ id + '] > [FINDSSU]')
+    try {
+        const regex = /https:\/\/github\.com\/user-attachments\/files\/\d+\/[^)]+/;
+        result = context.match(regex)[0];
+        console.log('[CASO '+ id + '] > [FINDSSU] '+ result); 
+        console.log('[CASO '+ id + '] > [FINDSSU] -fin')
+        return result;
+    } catch (err) {
+        console.log('[CASO '+ id + '] > [WARNING] SSU not found!')
+        return "null"
+    }
+}
+
+// Split SSU file in three sections: SSULog, WinLog, DXdiag
+async function splitSSUFile(ssuURL, id){
+  try {
+    const delimiter = '...#SSU#...';
+    console.log('[CASO '+ id + '] > [SSUraw]')
+    const response = await axios.get(ssuURL, { httpsAgent: proxyAgent, responseType: 'stream'});
+    const partsArray = [];
+    let buffer = '';
+
+    const writableStream = new Writable({
+      write(chunk, encoding, callback) {
+        buffer += chunk.toString();
+
+        let parts = buffer.split(delimiter);
+        buffer = parts.pop(); // Keep the last part in the buffer
+
+        parts.forEach((part) => {
+          partsArray.push(part.trim());
+        });
+
+        callback();
+      }
+    });
+
+    await new Promise((resolve, reject) => {
+      writableStream.on('finish', resolve);
+      writableStream.on('error', reject);
+      response.data.pipe(writableStream);
+    });
+
+    response.data.on('end', () => {
+      if (buffer) {
+        partsArray.push(buffer.trim());
+      }
+        console.log('Stream complete ');
+    });
+
+    console.log('[CASO '+ id + '] > [SSUraw] -fin')      
+    return partsArray;
+
+  } catch (err) {
+    console.log('[CASO '+ id + '] > [ERROR] SSUraw - ' + err)
+    return false;
+  }
+}
+
+
+
 app.get('/githubupdate/:id', async (req, res) => {
   let id = req.params.id;
   let caseInfo = await api_github_call(id);
@@ -310,6 +373,7 @@ app.get('/githubupdate/:id', async (req, res) => {
 
     if (response.ok) {
         res.redirect('/github/'+id);
+        //res.redirect('/dashboard');
       } else {
         res.status(500).send('error');
       }
@@ -362,116 +426,40 @@ app.post('/cerebro', async (req, res) => {
     }
   }
 
-  // get SSU url from github data
-  async function findSSUpath(context) {
-      console.log('[CASO '+ req.body.caseInfo.number + '] > [FINDSSU]')
-      try {
-          const regex = /https:\/\/github\.com\/user-attachments\/files\/\d+\/[^)]+/;
-          result = context.match(regex)[0];
-          console.log('[CASO '+ req.body.caseInfo.number + '] > [FINDSSU] '+ result); 
-          console.log('[CASO '+ req.body.caseInfo.number + '] > [FINDSSU] -fin')
-          return result;
-      } catch (err) {
-          console.log('[CASO '+ req.body.caseInfo.number + '] > [WARNING] SSU not found!')
-          return "null"
-      }
-  }
-
-  // Split SSU file in three sections: SSULog, WinLog, DXdiag
-  async function splitSSUFile(ssuURL){
-    try {
-      const delimiter = '...#SSU#...';
-      console.log('[CASO '+ req.body.caseInfo.number + '] > [SSUraw]')
-      const response = await axios.get(ssuURL, { httpsAgent: proxyAgent, responseType: 'stream' });
-      const partsArray = [];
-      let buffer = '';
-
-      const writableStream = new Writable({
-        write(chunk, encoding, callback) {
-          buffer += chunk.toString();
-
-          let parts = buffer.split(delimiter);
-          buffer = parts.pop(); // Keep the last part in the buffer
-
-          parts.forEach((part) => {
-            partsArray.push(part.trim());
-          });
-
-          callback();
-        }
-      });
-
-      response.data.pipe(writableStream);
-
-      writableStream.on('finish', () => {
-        if (buffer) {
-          partsArray.push(buffer.trim()); // Add any remaining data in the buffer
-        }
-      });
-
-      writableStream.on('error', (error) => {
-        console.error('Error processing file:', error);
-      });
-
-      console.log('[CASO '+ req.body.caseInfo.number + '] > [SSUraw] -fin')      
-      return partsArray;
-
-    } catch (err) {
-      console.log('[CASO '+ req.body.caseInfo.number + '] > [ERROR] SSUraw - ' + err)
-      return false;
-    }
-  }
 
   console.log('[CASO '+ req.body.caseInfo.number + ']')
-  let igptToken = false;
   let caseAnalysis = false;
-  let githubPrompt = false;
-  let sentimentPrompt = false;
-  let ssuPrompt = false;
-  let logPrompt = false;
-  let dxPrompt = false;
+
 
   // Input for case and comments
   const inputCase = "User: "+ req.body.caseInfo.user.login + " Case Number: "+ req.body.caseInfo.number + " Title: "+ req.body.caseInfo.title + "\n" + req.body.caseInfo.body;
   const inputComments = "Case description: " + req.body.caseInfo.body + " Comments: " + JSON.stringify(req.body.commentsInfo);
  
 
-  await getPrompts();
   // ssu prompt
-  ssuURL = await findSSUpath(inputCase)
-  ssuParts = await splitSSUFile(ssuURL); 
-  igptToken = await getTokeniGPT();
-
+  ssuURL = await findSSUpath(inputCase, req.body.caseInfo.number)
+  ssuParts = await splitSSUFile(ssuURL, req.body.caseInfo.number); 
  
-
+ 
+  const case_num = req.body.caseInfo.number;
   // iGPT calls
-  [caseAnalysis, commentsAnalysis, ssuAnalysis, logAnalysis, dxAnalysis] = await Promise.all([
-    invokeModel(inputCase, githubPrompt, igptToken, "case", req.body.caseInfo.number),
-    invokeModel(inputComments, sentimentPrompt, igptToken, "comments", req.body.caseInfo.number),
-    invokeModel(ssuParts[0], ssuPrompt, igptToken, "SSU", req.body.caseInfo.number),
-    invokeModel(ssuParts[1], logPrompt, igptToken, "Logs", req.body.caseInfo.number),
-    invokeModel(ssuParts[2], dxPrompt, igptToken, "DxDiag", req.body.caseInfo.number),
+  [caseAnalysis, sentimentAnalysis, ssuAnalysis, logAnalysis, dxAnalysis] = await Promise.all([
+    invokeModel2("case", "github", inputCase, case_num, false),
+    invokeModel2("sentiment", "sentiment", inputComments, case_num, false),
+    invokeModel2("ssu", "ssu", ssuParts[0], case_num, true),
+    invokeModel2("winlogs", "logEvents", ssuParts[1], case_num, true),
+    invokeModel2("dxlogs", "dxdiag", ssuParts[2], case_num, true),
   ]);
  
-  //cleaning up returned JSONs
-  try{
-    caseJSON = JSON.parse(caseAnalysis.match(/\{(?:[^{}]*|\{(?:[^{}]*|\{[^{}]*\})*\})*\}/g));
-    sentimentJSON = JSON.parse(commentsAnalysis.match(/\{(?:[^{}]*|\{(?:[^{}]*|\{[^{}]*\})*\})*\}/g));
-    ssuJSON = ssuAnalysis ? JSON.parse(ssuAnalysis.match(/\{(?:[^{}]*|\{(?:[^{}]*|\{[^{}]*\})*\})*\}/g)) : "false";
-    logJSON = logAnalysis ? JSON.parse(logAnalysis.match(/\{(?:[^{}]*|\{(?:[^{}]*|\{[^{}]*\})*\})*\}/g)) : "false";
-    dxJSON = dxAnalysis ? JSON.parse(dxAnalysis.match(/\{(?:[^{}]*|\{(?:[^{}]*|\{[^{}]*\})*\})*\}/g)) : "false";
-  }catch (err) {
-    console.log("JSON error", err)
-  }
-
   const analysis = {
     "SSU-path" : ssuURL,
-    "SSU-analysis" : ssuJSON, 
-    "LogEvents-analysis" : logJSON, 
-    "DXDiag-analysis" : dxJSON,  
-    "sentiment-analysis" : sentimentJSON,   
-    "case-analysis": caseJSON
+    "SSU-analysis" : ssuAnalysis, 
+    "LogEvents-analysis" : logAnalysis, 
+    "DXDiag-analysis" : dxAnalysis,  
+    "sentiment-analysis" : sentimentAnalysis,   
+    "case-analysis": caseAnalysis
   }
+
 
   const connection = await db.getConnection(); 
 
@@ -483,12 +471,12 @@ app.post('/cerebro', async (req, res) => {
     `UPDATE cases SET last_date = ?, ai_analysis = ?, ai_logs = ?, ai_feedback= ?, pse_list= ?, isvc_num= ?, sentiment= ?, case_info= ?, raw= ?  WHERE github_num = ?`,
     [ 
       dateTime, 
-      JSON.stringify(caseJSON), 
-      JSON.stringify(ssuJSON), 
-      JSON.stringify(sentimentJSON), 
-      JSON.stringify(sentimentJSON.pses), 
+      JSON.stringify(caseAnalysis), 
+      JSON.stringify(ssuAnalysis), 
+      JSON.stringify(sentimentAnalysis), 
+      JSON.stringify(sentimentAnalysis.pses), 
       null, 
-      sentimentJSON.case_sentiment, 
+      sentimentAnalysis.case_sentiment, 
       JSON.stringify(req.body.caseInfo), 
       JSON.stringify(analysis),
       req.body.caseInfo.number
@@ -500,12 +488,12 @@ app.post('/cerebro', async (req, res) => {
         'INSERT INTO cases (last_date, github_num, ai_analysis, ai_logs, ai_feedback, pse_list, isvc_num, sentiment, case_info, raw) VALUES (?,?,?,?,?,?,?,?,?,?);', 
         [ dateTime, 
           req.body.caseInfo.number, 
-          JSON.stringify(caseJSON), 
-          JSON.stringify(ssuJSON), 
-          JSON.stringify(sentimentJSON), 
-          JSON.stringify(sentimentJSON.pses), 
+          JSON.stringify(caseAnalysis), 
+          JSON.stringify(ssuAnalysis), 
+          JSON.stringify(sentimentAnalysis), 
+          JSON.stringify(sentimentAnalysis.pses), 
           null, 
-          sentimentJSON.case_sentiment, 
+          sentimentAnalysis.case_sentiment, 
           JSON.stringify(req.body.caseInfo), 
           JSON.stringify(analysis)
         ]);
@@ -519,7 +507,7 @@ app.post('/cerebro', async (req, res) => {
     connection.release();
   }
   console.log('[CASO '+ req.body.caseInfo.number + '] -fin' );
-  res.status(200).send('Processed successfully');
+  res.sendStatus(200); 
 
 });
 
@@ -545,6 +533,7 @@ app.get('/github/:id', checkSession, async (req, res) => {
       pses = [{"email" : req.session.user.email}]
     }
 
+   
     res.render('details', {
       title: 'Github Case ['+ id +']', 
       user: req.session.user,
@@ -808,6 +797,162 @@ app.get('/hsd/fetch/:text', async(req,res) => {
 app.get('/old_test', async (req, res) => {
     res.render('test', {
         title: 'Test',
+        user: req.session.user
+    });
+});
+
+app.get('/beta/prompt/:source', async (req, res) =>{
+  let source = req.params.source;
+  [data, t] = await db.query('SELECT data FROM prompts WHERE name= ?',[source])
+  res.json(data)
+});
+
+function extractJSON(text) {
+  const results = [];
+  let start = -1, depth = 0;
+
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+
+    if (c === '{' || c === '[') {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (c === '}' || c === ']') {
+      depth--;
+      if (depth === 0 && start !== -1) {
+        const candidate = text.slice(start, i + 1);
+        try {
+          // Parse to confirm valid JSON
+          const obj = JSON.parse(candidate);
+
+          // Convert back to a JSON string
+          const jsonString = JSON.stringify(obj, null, 2);
+
+          results.push(jsonString);
+        } catch {
+          // Ignore malformed JSON segments
+        }
+        start = -1;
+      }
+    }
+  }
+
+  return results;
+}
+
+
+async function invokeModel2(from, prompt, content, case_num, heavy, testing=false){
+  let maxLines = 4000
+  if(content == "" || content == undefined){
+    return "false";
+  } 
+  if (content.split('\n').length > maxLines) {
+    console.log('[CASO '+ case_num +'] > [INVOKEMODEL] '+ from +' -content size too large: ' + content.split('\n').length + " lines." );
+    content = content.split('\n').slice(0, maxLines).join('\n');
+    console.log('[CASO '+ case_num +'] > [INVOKEMODEL] '+ from +' -content size reduced to ' + maxLines + " lines.");
+  }
+
+  try {
+    headers = {
+      "Content-Type": "application/json"
+    };
+
+    if (testing) {
+      sysPrompt = prompt;
+    } else {
+      [temp, t] = await db.query('SELECT data FROM prompts WHERE name= ?',[prompt])
+      sysPrompt = temp[0].data;
+    }
+    
+    if (heavy){
+      url = "http://10.105.184.156:8001/v1/chat/completions";
+      model = "meta-llama/Llama-3.1-8B-Instruct"
+    }else {
+      url = "http://10.105.184.156:8000/v1/chat/completions";
+      model = "meta-llama/Llama-3.3-70B-Instruct"
+    }
+    console.log('[CASO '+ case_num +'] > [INVOKEMODEL] '+ from +': ' + model);
+
+    data = {
+      "model": model,
+      "max_tokens": 4000,
+      "temperature": 0,
+      "messages": [
+        {
+          "role": "system",
+          "content": sysPrompt
+        },
+        {
+          "role": "user",
+          "content": content
+        }
+      ]
+    };
+
+
+    response = await axios.post(url, data, { httpsAgent: proxyAgent, headers: headers});
+    console.log('[CASO '+ case_num +'] > [INVOKEMODEL] '+ from +' -fin');
+    r = response.data.choices[0].message.content;
+    return r ? JSON.parse(extractJSON(r)[0]) : "false";
+    
+
+  } catch (err) {
+    console.log(err);
+      console.log('[CASO '+ case_num +'] > [INVOKEMODEL] '+ from +' > ' +err);
+      return false
+  }
+}
+app.get('/beta/call/:source', async (req, res) => {
+  let prompt = req.params.source;
+  const caseNum = 1246;
+  let heavy = false;
+  if (prompt== "github"){
+    caseInfo = await api_github_call(caseNum);
+    content = "User: "+ caseInfo.user.login + " Case Number: "+ caseInfo.number + " Title: "+ caseInfo.title + "\n" + caseInfo.body
+  } else if (prompt =="sentiment"){
+    caseInfo = await api_github_call(caseNum);
+    commentsInfo = await api_github_call(caseNum + "/comments")
+    content = "Description: "+ caseInfo.body + ".\nComments: "+JSON.stringify(commentsInfo);
+  } else if (prompt =="ssu"){
+    caseInfo = await api_github_call(caseNum);
+    ssuURL = await findSSUpath(caseInfo.body, caseNum)
+    ssuParts = await splitSSUFile(ssuURL, caseNum); 
+    content = ssuParts[0];
+    heavy = true;
+  } else if (prompt =="logEvents"){
+    caseInfo = await api_github_call(caseNum);
+    ssuURL = await findSSUpath(caseInfo.body, caseNum)
+    ssuParts = await splitSSUFile(ssuURL, caseNum); 
+    content = ssuParts[1];
+    heavy = true;
+  } else if (prompt =="dxdiag"){
+    caseInfo = await api_github_call(caseNum);
+    ssuURL = await findSSUpath(caseInfo.body, caseNum)
+    ssuParts = await splitSSUFile(ssuURL, caseNum); 
+    content = ssuParts[2];
+    heavy = true;
+  } else if (prompt =="test"){
+    content = "What is (3*2+10)+(12-1)"
+  }
+
+  let result = await invokeModel2("test", prompt,content,caseNum,heavy, false);
+  res.json(result);
+});
+
+app.post('/beta/call/', async (req, res) => {
+  const prompt = req.body.prompt;
+  const caseNum = req.body.case;
+  caseInfo = await api_github_call(caseNum);
+  content = "User: "+ caseInfo.user.login + " Case Number: "+ caseInfo.number + " Title: "+ caseInfo.title 
+  //const user_id = parseInt(req.params.id, 10);
+  let result = await invokeModel2("test", prompt, content, caseNum, false, true);
+  res.json(result);
+})
+
+
+app.get('/beta', checkSession, async (req, res) => {
+      res.render('beta', {
+        title: 'BETA',
         user: req.session.user
     });
 });
