@@ -45,7 +45,7 @@ app.use(session({
   } 
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb', extended: true }));
 
 app.use(cors());
 const cca = new msal.ConfidentialClientApplication(authConfig);
@@ -298,25 +298,30 @@ async function findSSUpath(context, id) {
 }
 
 // Split SSU file in three sections: SSULog, WinLog, DXdiag
-async function splitSSUFile(ssuURL, id){
+async function splitSSUFile(ssuURL, id, fileContents = null) {
   try {
     const delimiter = '...#SSU#...';
-    console.log('[CASO '+ id + '] > [SSUraw]')
-    const response = await axios.get(ssuURL, { httpsAgent: proxyAgent, responseType: 'stream'});
     const partsArray = [];
     let buffer = '';
+
+    // If fileContents are provided (from a local upload), parse directly
+    if (fileContents) {
+      let parts = fileContents.split(delimiter);
+      parts.forEach(part => partsArray.push(part.trim()));
+      console.log('[CASO ' + id + '] > [SSUraw] - local file parsed');
+      return partsArray;
+    }
+
+    // Otherwise, fetch and stream remote file as before
+    console.log('[CASO ' + id + '] > [SSUraw]');
+    const response = await axios.get(ssuURL, { httpsAgent: proxyAgent, responseType: 'stream' });
 
     const writableStream = new Writable({
       write(chunk, encoding, callback) {
         buffer += chunk.toString();
-
         let parts = buffer.split(delimiter);
-        buffer = parts.pop(); // Keep the last part in the buffer
-
-        parts.forEach((part) => {
-          partsArray.push(part.trim());
-        });
-
+        buffer = parts.pop();
+        parts.forEach(part => partsArray.push(part.trim()));
         callback();
       }
     });
@@ -331,17 +336,18 @@ async function splitSSUFile(ssuURL, id){
       if (buffer) {
         partsArray.push(buffer.trim());
       }
-        console.log('Stream complete ');
+      console.log('Stream complete');
     });
 
-    console.log('[CASO '+ id + '] > [SSUraw] -fin')      
+    console.log('[CASO ' + id + '] > [SSUraw] -fin');
     return partsArray;
 
   } catch (err) {
-    console.log('[CASO '+ id + '] > [ERROR] SSUraw - ' + err)
+    console.log('[CASO ' + id + '] > [ERROR] SSUraw - ' + err);
     return false;
   }
 }
+
 
 
 
@@ -680,6 +686,7 @@ app.get('/cases/count', async(req,res)=> {
                 AND isvc_url IS NULL THEN 1 ELSE 0 END) AS NoISVCopen
     FROM cases
   `);
+  console.log(counts[0]);
   await db.query(
     `UPDATE numeros
       SET l4open = ?, l4closed = ?, l5open = ?, l5closed = ?, NoISVCopen = ?, NoISVCclosed = ?, totalCases = ?
@@ -808,6 +815,7 @@ app.get('/beta/prompt/:source', async (req, res) =>{
 });
 
 function extractJSON(text) {
+  console.log(text.length)
   const results = [];
   let start = -1, depth = 0;
 
@@ -839,7 +847,6 @@ function extractJSON(text) {
 
   return results;
 }
-
 
 async function invokeModel2(from, prompt, content, case_num, heavy, testing=false){
   let maxLines = 4000
@@ -876,7 +883,8 @@ async function invokeModel2(from, prompt, content, case_num, heavy, testing=fals
     data = {
       "model": model,
       "max_tokens": 4000,
-      "temperature": 0,
+      "temperature": 0.2,
+      "top_P": 0.40,
       "messages": [
         {
           "role": "system",
@@ -902,13 +910,14 @@ async function invokeModel2(from, prompt, content, case_num, heavy, testing=fals
       return false
   }
 }
+
 app.get('/beta/call/:source', async (req, res) => {
   let prompt = req.params.source;
   const caseNum = 1246;
   let heavy = false;
   if (prompt== "github"){
     caseInfo = await api_github_call(caseNum);
-    content = "User: "+ caseInfo.user.login + " Case Number: "+ caseInfo.number + " Title: "+ caseInfo.title + "\n" + caseInfo.body
+    content = "User: "+ caseInfo.user.login + "\nCase Number: "+ caseInfo.number + "Title: "+ caseInfo.title + "\nDescription: " + caseInfo.body
   } else if (prompt =="sentiment"){
     caseInfo = await api_github_call(caseNum);
     commentsInfo = await api_github_call(caseNum + "/comments")
@@ -941,12 +950,42 @@ app.get('/beta/call/:source', async (req, res) => {
 
 app.post('/beta/call/', async (req, res) => {
   const prompt = req.body.prompt;
-  const caseNum = req.body.case;
-  caseInfo = await api_github_call(caseNum);
-  content = "User: "+ caseInfo.user.login + " Case Number: "+ caseInfo.number + " Title: "+ caseInfo.title 
-  //const user_id = parseInt(req.params.id, 10);
-  let result = await invokeModel2("test", prompt, content, caseNum, false, true);
+  const caseNum = req.body.caseNumber;
+  const type = req.body.type;
+  const data = req.body.data;
+ 
+  let result = "<empty>";
+  switch(type){
+    case "github":
+      caseInfo = await api_github_call(caseNum);
+      console.log( caseInfo.body);
+      content = "User: "+ caseInfo.user.login + " Case Number: "+ caseInfo.number + " Title: "+ caseInfo.title + "\nDescription: " + caseInfo.body
+      result = await invokeModel2("test", prompt, content, caseNum, false, true);
+      break;
+    case "SSU":
+      ssuParts = await splitSSUFile("nada", caseNum, data); 
+      content = ssuParts[0]
+      result = await invokeModel2("test", prompt, content, caseNum, true, true);
+      break;
+    case "Sentiment":
+      caseInfo = await api_github_call(caseNum);
+      commentsInfo = await api_github_call(caseNum + "/comments")
+      content = "Case description: " + caseInfo.body + " Comments: " + JSON.stringify(commentsInfo);
+      result = await invokeModel2("test", prompt, content, caseNum, false, true);
+      break;
+    case "WindowsLogs":
+      ssuParts = await splitSSUFile("nada", caseNum, data); 
+      content = ssuParts[1];
+      result = await invokeModel2("test", prompt, content, caseNum, true, true);
+      break;
+    case "DxDiag":
+      ssuParts = await splitSSUFile("nada", caseNum, data); 
+      content = ssuParts[2]
+      result = await invokeModel2("test", prompt, content, caseNum, true, true);
+      break;
+  }
   res.json(result);
+
 })
 
 

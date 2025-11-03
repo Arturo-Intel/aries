@@ -28,42 +28,48 @@
           <h2><i class="fa-solid fa-edit"></i>Prompt</h2>
           <textarea id="aiPrompt0" placeholder="Enter your AI prompt here..."></textarea>
           <input id="caseNumber0" type="text" placeholder="Case number...">
-          <button onclick="saveAndTestPrompt(0)">Test</button>
+          <button>Save</button>
+          <button onclick="testPrompt(0)">Test</button>
         </div>
       </div>
       <div class="tab-pane fade" id="tab2" role="tabpanel">
         <div class="section" style="display: flex; flex-direction: column; flex: 1; height: 100%;">
           <h2><i class="fa-solid fa-edit"></i> Prompt</h2>
           <textarea id="aiPrompt1" placeholder="Enter your AI prompt here..."></textarea>
-          <button onclick="saveAndTestPrompt('1')">Test</button>
+          <input type="file" id="SSUfileInput">
+          <button onclick="testPrompt(1)">Test</button>
         </div>
       </div>
       <div class="tab-pane fade" id="tab3" role="tabpanel">
         <div class="section" style="display: flex; flex-direction: column; flex: 1; height: 100%;">
           <h2><i class="fa-solid fa-edit"></i>Prompt</h2>
           <textarea id="aiPrompt2" placeholder="Enter your AI prompt here..."></textarea>
-          <button onclick="saveAndTestPrompt('2')">Test</button>
+          <input id="caseNumber2" type="text" placeholder="Case number...">
+          <button>Save</button>
+          <button onclick="testPrompt(2)">Test</button>
         </div>
       </div>
       <div class="tab-pane fade" id="tab4" role="tabpanel">
         <div class="section" style="display: flex; flex-direction: column; flex: 1; height: 100%;">
           <h2><i class="fa-solid fa-edit"></i>Prompt</h2>
           <textarea id="aiPrompt3" placeholder="Enter your AI prompt here..."></textarea>
-          <button onclick="saveAndTestPrompt('3')">Test</button>
+          <input type="file" id="WLfileInput">
+          <button onclick="testPrompt(3)">Test</button>
         </div>
       </div>
       <div class="tab-pane fade" id="tab5" role="tabpanel">
         <div class="section" style="display: flex; flex-direction: column; flex: 1; height: 100%;">
           <h2><i class="fa-solid fa-edit"></i>Prompt</h2>
           <textarea id="aiPrompt4" placeholder="Enter your AI prompt here..."></textarea>
-          <button onclick="saveAndTestPrompt('4')">Test</button>
+          <input type="file" id="DXdfileInput">
+          <button onclick="testPrompt(4)">Test</button>
         </div>
       </div><div class="tab-pane fade" id="tab6" role="tabpanel">
         <div class="section" style="display: flex; flex-direction: column; flex: 1; height: 100%;">
           <h2><i class="fa-solid fa-edit"></i>Prompt</h2>
           <textarea id="aiPrompt5" placeholder="Enter your AI prompt here..."></textarea>
           <textarea id="testPrompt" placeholder="Content..." style="min-height: 30px;"></textarea>
-          <button onclick="saveAndTestPrompt('5')">Test</button>
+          <button onclick="testPrompt(5)">Test</button>
         </div>
       </div>
     </div>
@@ -93,15 +99,36 @@
     document.getElementById('aiPrompt0').value = data[0].data;
   };
 
-  async function saveAndTestPrompt(idx) { 
+  let SSUtext = "none";
+
+  async function testPrompt(idx) { 
+   
+    let type = "none";
+    let caseNumber = "none";
+    let data = "none";
+    switch(idx){
+        case 0: 
+            type = "github"; 
+            caseNumber = document.getElementById('caseNumber' + idx).value;
+            break;
+        case 1: 
+            type = "SSU"; 
+            data = await parseSSU('SSUfileInput');
+            break;
+        case 2:
+            type = "Sentiment"; 
+            caseNumber = document.getElementById('caseNumber' + idx).value;
+            break;
+        case 3:
+            type = "WindowsLogs"; 
+            data = await parseSSU('WLfileInput');
+            break;
+        case 4:
+            type = "DxDiag"; 
+            data = await parseSSU('DXdfileInput');
+            break;
+    }
     
-    // const response = await fetch('/beta/call/'+idx,{
-    //       method: 'GET',
-    //       headers: {
-    //                 "Content-Type": "application/json"
-    //               }
-    //   });
-    const content = "something";
     const response = await fetch('/beta/call/', {
         method: 'POST',
         headers: {
@@ -109,18 +136,42 @@
                 },
         body: JSON.stringify({
             "prompt": document.getElementById('aiPrompt' + idx).value,
-            "case" :  document.getElementById('caseNumber' + idx).value,
+            "caseNumber" : caseNumber,
+            "type" : type,
+            "data" : data
         })
       });
     res = await response.json();
     logServerResponse(res);
   }
+
   function logServerResponse(json) {
     const container = document.getElementById('server-response');
     const item = document.createElement('div');
     item.className = 'json-log-item';
     item.innerHTML = `<pre>${JSON.stringify(json, null, 2)}</pre>`;
     container.prepend(item);
-    }
+  }
+
+  function parseSSU(source) {
+    return new Promise((resolve, reject) => {
+        const fileInput = document.getElementById(source);
+        const file = fileInput.files[0];
+        if (!file) {
+            alert('Please select a text file first.');
+            reject('No file selected');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            resolve(event.target.result);
+        };
+        reader.onerror = reject;
+        reader.readAsText(file);
+    });
+  }
+    
+
+
 </script>
 

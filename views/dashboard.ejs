@@ -245,7 +245,8 @@
   }
 
   function getinfo(item){
-    if(item.ai_logs != "false") {
+    item.ai_logs = item.ai_logs == false ? "false":item.ai_logs;
+    if(item.ai_logs != "false") { 
       let display_i = 0;
       item.ai_logs.displays.forEach(function(d, i) {
         if(d.gpu.includes("Intel")){
