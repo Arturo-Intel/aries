@@ -438,7 +438,8 @@ app.post('/cerebro', async (req, res) => {
 
 
   // Input for case and comments
-  const inputCase = "User: "+ req.body.caseInfo.user.login + " Case Number: "+ req.body.caseInfo.number + " Title: "+ req.body.caseInfo.title + "\n" + req.body.caseInfo.body;
+  const inputCase = "User: "+ req.body.caseInfo.user.login + " Case Number: "+ req.body.caseInfo.number + " Title: "+ req.body.caseInfo.title + "\nDescription: " + req.body.caseInfo.body;
+
   const inputComments = "Case description: " + req.body.caseInfo.body + " Comments: " + JSON.stringify(req.body.commentsInfo);
  
 
