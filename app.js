@@ -959,7 +959,6 @@ app.post('/beta/call/', async (req, res) => {
   switch(type){
     case "github":
       caseInfo = await api_github_call(caseNum);
-      console.log( caseInfo.body);
       content = "User: "+ caseInfo.user.login + " Case Number: "+ caseInfo.number + " Title: "+ caseInfo.title + "\nDescription: " + caseInfo.body
       result = await invokeModel2("test", prompt, content, caseNum, false, true);
       break;
