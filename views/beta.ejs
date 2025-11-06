@@ -127,6 +127,10 @@
             type = "DxDiag"; 
             data = await parseSSU('DXdfileInput');
             break;
+        case 5:
+            type = "test"; 
+            data = document.getElementById('testPrompt').value;
+            break;
     }
     
     const response = await fetch('/beta/call/', {

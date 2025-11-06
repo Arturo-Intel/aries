@@ -10,6 +10,8 @@ const tools = require('./tools');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 
+
+
 const { Writable } = require('stream');
 
 const { HttpsProxyAgent } = require('https-proxy-agent');
@@ -282,7 +284,7 @@ async function api_github_call(id) {
   }
 }
 
-  // get SSU url from github data
+// get SSU url from github data
 async function findSSUpath(context, id) {
     console.log('[CASO '+ id + '] > [FINDSSU]')
     try {
@@ -347,9 +349,6 @@ async function splitSSUFile(ssuURL, id, fileContents = null) {
     return false;
   }
 }
-
-
-
 
 app.get('/githubupdate/:id', async (req, res) => {
   let id = req.params.id;
@@ -687,7 +686,6 @@ app.get('/cases/count', async(req,res)=> {
                 AND isvc_url IS NULL THEN 1 ELSE 0 END) AS NoISVCopen
     FROM cases
   `);
-  console.log(counts[0]);
   await db.query(
     `UPDATE numeros
       SET l4open = ?, l4closed = ?, l5open = ?, l5closed = ?, NoISVCopen = ?, NoISVCclosed = ?, totalCases = ?
@@ -735,7 +733,7 @@ app.get('/hsd/fetch-mine/:text', checkSession, async(req,res) => {
   if(idsid == ""){
     data= [];
   }else {
-    const base64 = Buffer.from('sys_ics_hsd:119fa07c-48b4-4d4e-aa31-91ed8e90362a').toString('base64');
+    const base64 = Buffer.from(process.env.HSD_TOKEN).toString('base64');
     const agent = new https.Agent({ rejectUnauthorized: false });
     const extra = text != "all"? "and title CONTAINS '%"+ text +"%'" : "";
     
@@ -777,7 +775,7 @@ app.get('/hsd/fetch-mine/:text', checkSession, async(req,res) => {
 
 app.get('/hsd/fetch/:text', async(req,res) => {
   let text= req.params.text;
-  const base64 = Buffer.from('sys_ics_hsd:119fa07c-48b4-4d4e-aa31-91ed8e90362a').toString('base64');
+  const base64 = Buffer.from(process.env.HSD_TOKEN).toString('base64');
   const agent = new https.Agent({ rejectUnauthorized: false });
   
   let bdata = await axios.post("https://hsdes-api.intel.com/rest/auth/query/execution/eql/?start_at=1&max_results=1000",
@@ -816,7 +814,6 @@ app.get('/beta/prompt/:source', async (req, res) =>{
 });
 
 function extractJSON(text) {
-  console.log(text.length)
   const results = [];
   let start = -1, depth = 0;
 
@@ -849,16 +846,34 @@ function extractJSON(text) {
   return results;
 }
 
-async function invokeModel2(from, prompt, content, case_num, heavy, testing=false){
-  let maxLines = 4000
-  if(content == "" || content == undefined){
-    return "false";
-  } 
-  if (content.split('\n').length > maxLines) {
-    console.log('[CASO '+ case_num +'] > [INVOKEMODEL] '+ from +' -content size too large: ' + content.split('\n').length + " lines." );
-    content = content.split('\n').slice(0, maxLines).join('\n');
-    console.log('[CASO '+ case_num +'] > [INVOKEMODEL] '+ from +' -content size reduced to ' + maxLines + " lines.");
+async function trimContentByTokens(content, case_num, from, maxTokens = 4000) {
+  const llama3TokenizerModule = await import('llama3-tokenizer-js');
+  const tokenizer = llama3TokenizerModule.default;
+  // Tokenize input (this is synchronous)
+  const encoded = tokenizer.encode(content);
+  
+  if (encoded.length > maxTokens) {
+    console.log('[CASO ' + case_num + '] > [INVOKEMODEL] ' + from +
+      ' -content size too large: ' + encoded.length + " tokens.");
+    // Truncate tokens
+    const truncatedInputIds = encoded.slice(0, maxTokens);
+    // Decode truncated tokens back to text (synchronous)
+    const truncatedContent = tokenizer.decode(truncatedInputIds);
+    console.log('[CASO ' + case_num + '] > [INVOKEMODEL] ' + from +
+      ' -content size reduced to ' + maxTokens + " tokens.");
+    return truncatedContent;
   }
+  return content;
+}
+
+async function invokeModel2(from, prompt, content, case_num, heavy, testing=false){
+
+  let maxTokens = 70000;
+  if (content == "" || content == undefined) {
+    return "false";
+  }
+
+  content = await trimContentByTokens(content, case_num, from, maxTokens);
 
   try {
     headers = {
@@ -871,7 +886,7 @@ async function invokeModel2(from, prompt, content, case_num, heavy, testing=fals
       [temp, t] = await db.query('SELECT data FROM prompts WHERE name= ?',[prompt])
       sysPrompt = temp[0].data;
     }
-    
+
     if (heavy){
       url = "http://10.105.184.156:8001/v1/chat/completions";
       model = "meta-llama/Llama-3.1-8B-Instruct"
@@ -906,48 +921,11 @@ async function invokeModel2(from, prompt, content, case_num, heavy, testing=fals
     
 
   } catch (err) {
-    console.log(err);
+      console.log(err.response);
       console.log('[CASO '+ case_num +'] > [INVOKEMODEL] '+ from +' > ' +err);
       return false
   }
 }
-
-app.get('/beta/call/:source', async (req, res) => {
-  let prompt = req.params.source;
-  const caseNum = 1246;
-  let heavy = false;
-  if (prompt== "github"){
-    caseInfo = await api_github_call(caseNum);
-    content = "User: "+ caseInfo.user.login + "\nCase Number: "+ caseInfo.number + "Title: "+ caseInfo.title + "\nDescription: " + caseInfo.body
-  } else if (prompt =="sentiment"){
-    caseInfo = await api_github_call(caseNum);
-    commentsInfo = await api_github_call(caseNum + "/comments")
-    content = "Description: "+ caseInfo.body + ".\nComments: "+JSON.stringify(commentsInfo);
-  } else if (prompt =="ssu"){
-    caseInfo = await api_github_call(caseNum);
-    ssuURL = await findSSUpath(caseInfo.body, caseNum)
-    ssuParts = await splitSSUFile(ssuURL, caseNum); 
-    content = ssuParts[0];
-    heavy = true;
-  } else if (prompt =="logEvents"){
-    caseInfo = await api_github_call(caseNum);
-    ssuURL = await findSSUpath(caseInfo.body, caseNum)
-    ssuParts = await splitSSUFile(ssuURL, caseNum); 
-    content = ssuParts[1];
-    heavy = true;
-  } else if (prompt =="dxdiag"){
-    caseInfo = await api_github_call(caseNum);
-    ssuURL = await findSSUpath(caseInfo.body, caseNum)
-    ssuParts = await splitSSUFile(ssuURL, caseNum); 
-    content = ssuParts[2];
-    heavy = true;
-  } else if (prompt =="test"){
-    content = "What is (3*2+10)+(12-1)"
-  }
-
-  let result = await invokeModel2("test", prompt,content,caseNum,heavy, false);
-  res.json(result);
-});
 
 app.post('/beta/call/', async (req, res) => {
   const prompt = req.body.prompt;
@@ -983,11 +961,95 @@ app.post('/beta/call/', async (req, res) => {
       content = ssuParts[2]
       result = await invokeModel2("test", prompt, content, caseNum, true, true);
       break;
+    case "test":
+      console.log("hello");
+      content = data;
+      result = await invokeModel2("test", prompt, content, caseNum, true, true);
+      break;
   }
   res.json(result);
 
 })
 
+app.get('/beta/hsdpush', async (req, res) => {
+  console.log("hello");
+  const base64 = Buffer.from(process.env.HSD_TOKEN).toString('base64');
+  const agent = new https.Agent({ rejectUnauthorized: false });
+  
+  try{
+    let resp = await axios.post("https://hsdes-api.intel.com/rest/auth/article/",
+      { 
+        "tenant": "ip_sw_graphics",
+        "subject": "bug",
+        "fieldValues": [
+            {
+              "title": "ARIES HSDES PUSH TEST",
+              "bug.operating_system": "windows.11_v24H2",
+              "ip_sw_graphics.bug.how_found_category": "user_experience",
+              "ip_sw_graphics.bug.problem_classification": "corruption",
+              "priority": "p2-high",
+              "bug.platform": "Battlemage Client GFX Platform",
+              "ip_sw_graphics.bug.team": "debug.dgfx",
+              "description": `<div class="case-summary-header" style="margin: 0px 0px 20px; padding: 15px; background-color: rgb(248, 249, 250); border-radius: 5px; color: rgb(51, 51, 51); font-family: &quot;Segoe UI&quot;, Tahoma, Geneva, Verdana, sans-serif; font-size: medium;"><h4 style="margin: 0px; padding: 0px;"><!--StartFragment--><br class="Apple-interchange-newline"><table class="hsd-checklist-table" style="margin: 20px 0px; padding: 0px; width: 955.556px; font-size: 14px; box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px; font-weight: 400; background-color: rgb(255, 255, 255);"><thead style="margin: 0px; padding: 0px;"><tr style="margin: 0px; padding: 0px;"><th style="margin: 0px; padding: 12px; background-color: rgb(44, 62, 80); color: white; text-align: left; width: 477.222px;">Checklist Instructions</th><th style="margin: 0px; padding: 12px; background-color: rgb(44, 62, 80); color: white; text-align: left; width: 477.222px;">Information/Data</th></tr></thead><tbody style="margin: 0px; padding: 0px;"><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(248, 249, 250); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Step 1: Filter - Check if issue is already reported to HSD ip_sw_graphics</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">Checked HSD ip_sw_graphics for existing reports Case: 769 GitHub: 769</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(233, 236, 239); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Step 2: Reproduce the issue (detail the driver version used)</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">Driver Version: 31.0.101.5444 GPU: Intel ARC A770 16GB OS: Windows 11 23H2</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(248, 249, 250); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Provide simplified repro steps with video/images when needed</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">1. Launch Star Wars: Knight Of The Old Republic on Steam. 2. Enable grass in the graphics options. 3. Set graphics quality to High or Ultra. 4. Observe the graphical artifacts in the game.</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(233, 236, 239); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Provide System configuration/information such as SSU, DXdiag logs</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">CPU: Ryzen 5600 Platform: Steam Application: Star Wars: Knight Of The Old Republic</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(248, 249, 250); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Provide the EDID from customer's system (IGCC -&gt; Support -&gt; System Diagnostic -&gt; Generate Report)</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">EDID report requested from customer</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(233, 236, 239); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Step 3: Check for regression by testing with a driver that is 3 to 6 months old</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">Regression testing required</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(248, 249, 250); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Check for progression by testing the latest attestation driver</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">Progression testing with latest driver required</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(233, 236, 239); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Try to reproduce using latest generation if not reported in latest iGPU/dGPU</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">Latest generation testing required</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(248, 249, 250); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Step 4: Check on 3rd party graphic cards such as NVIDIA/AMD</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">3rd party GPU comparison required</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(233, 236, 239); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Check with different ports (HDMI/DP) on the same display panel</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">Different port testing required</td></tr><tr style="margin: 0px; padding: 0px; background-color: rgb(241, 243, 244);"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(248, 249, 250); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Check with different display panel from other display vendor</td><td class="data-cell" style="margin: 0px; padding: 12px; background-color: rgb(255, 255, 255); white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">Different display panel testing required</td></tr></tbody></table><!--EndFragment--></h4></div>`,
+              "bug.reproducibility": "always_100%",
+              "bug.exposure": "2-high",
+              "ip_sw_graphics.bug.submitter_org": "ics.gfx",
+              "bug.env_found" : "silicon",
+              "component" : "ip.graphics_driver.unassigned",
+              "ip_sw_graphics.bug.gfx_driver_version" : "32.0.101.8247",
+              "ip_sw_graphics.bug.ics_owner": "amedinam",
+              // "ip_sw_graphics.bug.application_name": 'No Existo'
+
+
+              // ,
+              // "status": 'open',
+              // "component": 'graphics_driver_unassigned',  
+              // "bug.env_found": 'silicon',  
+              // "ip_sw_graphics.bug.how_found_category": 'user_experience',
+              // "ip_sw_graphics.bug.submitter_org": 'ics.gfx',
+              // "ip_sw_graphics.bug.reproducible_on_crb": 'did_not_try',
+              
+              // "priority": "p2-high",
+              // "bug.exposure": 'p2-high',
+              // "bug.platform": 'Battlemage Client GFX Platform',
+              // "problem_clasification": 'corruption',
+              // "team": 'debug.dgfx',
+              // "gfx_driver_version": '32.0.101.8247',
+              
+              // "reproducibility": 'always_100%',
+              // "to_reproduce": 'Launch Cyberpunk 2077, navigate to graphics settings, enable ray tracing, game crashes on startup',
+              // "application_name": 'Cyberpunk 2077',
+              // "contact_source": '3rd_Party_Community',
+              // "ics_owner": 'kgutier',
+              // "send_mail": 'true',
+              // "notify": 'kgutier@intel.com',
+              // "description": {  
+              //     'hw.gpu_model': 'Intel Arc A770',
+              //     'hw.system_memory': '32GB DDR4',
+              //     'hw.cpu_model': 'Intel Core i7-12700K'
+              // },
+              // "comments": `Customer reported issue through support ticket #12345. Issue reproducible on multiple systems with similar configuration. This ticket will be closed as it is only a test. Created at: ${new Date().toISOString()}`
+                        
+            }
+          ]
+        },  // Data body
+      {
+        headers: {
+          "Authorization": "Basic " + base64,
+          "content-type": "application/json"
+        },
+        httpsAgent: agent 
+      }
+    );
+    console.log(resp);
+  }catch (err) {  
+    console.log(err);
+    res.status(err.status).send(err.response.data.message);
+  }
+  
+  res.status(200).send('-fin');
+
+});
 
 app.get('/beta', checkSession, async (req, res) => {
       res.render('beta', {
