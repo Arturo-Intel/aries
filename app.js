@@ -978,7 +978,7 @@ app.get('/beta/hsdhistory/:id', async (req,res) =>{
   const agent = new https.Agent({ rejectUnauthorized: false });
 
   try{
-    let resp = await axios.get("https://hsdes-api.intel.com/rest/auth/article/" + id + "/history?fields=id%2Cinternal_summary%2Cowner%2Ctitle%2Cstatus%2Cstatus_reason%2Cupdated_date%2Cupdated_by",
+    let resp = await axios.get("https://hsdes-api.intel.com/rest/auth/article/" + id + "/history?fields=id%2Cip_sw_graphics.bug.team%2Cinternal_summary%2Cowner%2Ctitle%2Cstatus%2Cstatus_reason%2Cupdated_date%2Cupdated_by",
       {
         headers: {
           "Authorization": "Basic " + base64,
