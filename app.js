@@ -846,7 +846,7 @@ function extractJSON(text) {
   return results;
 }
 
-async function trimContentByTokens(content, case_num, from, maxTokens = 4000) {
+async function trimContentByTokens(content, case_num, from, maxTokens) {
   const llama3TokenizerModule = await import('llama3-tokenizer-js');
   const tokenizer = llama3TokenizerModule.default;
   // Tokenize input (this is synchronous)
@@ -971,6 +971,30 @@ app.post('/beta/call/', async (req, res) => {
 
 })
 
+app.get('/beta/hsdhistory/:id', async (req,res) =>{
+
+  let id = req.params.id;
+  const base64 = Buffer.from(process.env.HSD_TOKEN).toString('base64');
+  const agent = new https.Agent({ rejectUnauthorized: false });
+
+  try{
+    let resp = await axios.get("https://hsdes-api.intel.com/rest/auth/article/" + id + "/history?fields=id%2Cinternal_summary%2Cowner%2Ctitle%2Cstatus%2Cstatus_reason%2Cupdated_date%2Cupdated_by",
+      {
+        headers: {
+          "Authorization": "Basic " + base64,
+          "content-type": "application/json"
+        },
+        httpsAgent: agent 
+      }
+    );
+    console.log(resp.data);
+  }catch(err){
+    console.log(err);
+    res.status(err.status).send(err.response.data.message);
+  }
+  res.status(200).send('-fin');
+});
+
 app.get('/beta/hsdpush', async (req, res) => {
   console.log("hello");
   const base64 = Buffer.from(process.env.HSD_TOKEN).toString('base64');
@@ -1032,7 +1056,7 @@ app.get('/beta/hsdpush', async (req, res) => {
                         
             }
           ]
-        },  // Data body
+      },  // Data body
       {
         headers: {
           "Authorization": "Basic " + base64,
