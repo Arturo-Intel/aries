@@ -846,7 +846,7 @@ function extractJSON(text) {
   return results;
 }
 
-async function trimContentByTokens(content, case_num, from, maxTokens = 4000) {
+async function trimContentByTokens(content, case_num, from, maxTokens) {
   const llama3TokenizerModule = await import('llama3-tokenizer-js');
   const tokenizer = llama3TokenizerModule.default;
   // Tokenize input (this is synchronous)
@@ -971,68 +971,41 @@ app.post('/beta/call/', async (req, res) => {
 
 })
 
-app.get('/beta/hsdpush', async (req, res) => {
-  console.log("hello");
+app.get('/beta/hsdhistory/:id', async (req,res) =>{
+
+  let id = req.params.id;
   const base64 = Buffer.from(process.env.HSD_TOKEN).toString('base64');
   const agent = new https.Agent({ rejectUnauthorized: false });
-  
+
+  try{
+    let resp = await axios.get("https://hsdes-api.intel.com/rest/auth/article/" + id + "/history?fields=id%2Cip_sw_graphics.bug.team%2Cinternal_summary%2Cowner%2Ctitle%2Cstatus%2Cstatus_reason%2Cupdated_date%2Cupdated_by",
+      {
+        headers: {
+          "Authorization": "Basic " + base64,
+          "content-type": "application/json"
+        },
+        httpsAgent: agent 
+      }
+    );
+    console.log(resp.data);
+  }catch(err){
+    console.log(err);
+    res.status(err.status).send(err.response.data.message);
+  }
+  res.status(200).send('-fin');
+});
+
+app.post('/hsd/push', async (req, res) => {
+  const base64 = Buffer.from(process.env.HSD_TOKEN).toString('base64');
+  const agent = new https.Agent({ rejectUnauthorized: false });
+  const data = req.params.description; //`` 
   try{
     let resp = await axios.post("https://hsdes-api.intel.com/rest/auth/article/",
       { 
         "tenant": "ip_sw_graphics",
         "subject": "bug",
-        "fieldValues": [
-            {
-              "title": "ARIES HSDES PUSH TEST",
-              "bug.operating_system": "windows.11_v24H2",
-              "ip_sw_graphics.bug.how_found_category": "user_experience",
-              "ip_sw_graphics.bug.problem_classification": "corruption",
-              "priority": "p2-high",
-              "bug.platform": "Battlemage Client GFX Platform",
-              "ip_sw_graphics.bug.team": "debug.dgfx",
-              "description": `<div class="case-summary-header" style="margin: 0px 0px 20px; padding: 15px; background-color: rgb(248, 249, 250); border-radius: 5px; color: rgb(51, 51, 51); font-family: &quot;Segoe UI&quot;, Tahoma, Geneva, Verdana, sans-serif; font-size: medium;"><h4 style="margin: 0px; padding: 0px;"><!--StartFragment--><br class="Apple-interchange-newline"><table class="hsd-checklist-table" style="margin: 20px 0px; padding: 0px; width: 955.556px; font-size: 14px; box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px; font-weight: 400; background-color: rgb(255, 255, 255);"><thead style="margin: 0px; padding: 0px;"><tr style="margin: 0px; padding: 0px;"><th style="margin: 0px; padding: 12px; background-color: rgb(44, 62, 80); color: white; text-align: left; width: 477.222px;">Checklist Instructions</th><th style="margin: 0px; padding: 12px; background-color: rgb(44, 62, 80); color: white; text-align: left; width: 477.222px;">Information/Data</th></tr></thead><tbody style="margin: 0px; padding: 0px;"><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(248, 249, 250); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Step 1: Filter - Check if issue is already reported to HSD ip_sw_graphics</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">Checked HSD ip_sw_graphics for existing reports Case: 769 GitHub: 769</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(233, 236, 239); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Step 2: Reproduce the issue (detail the driver version used)</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">Driver Version: 31.0.101.5444 GPU: Intel ARC A770 16GB OS: Windows 11 23H2</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(248, 249, 250); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Provide simplified repro steps with video/images when needed</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">1. Launch Star Wars: Knight Of The Old Republic on Steam. 2. Enable grass in the graphics options. 3. Set graphics quality to High or Ultra. 4. Observe the graphical artifacts in the game.</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(233, 236, 239); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Provide System configuration/information such as SSU, DXdiag logs</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">CPU: Ryzen 5600 Platform: Steam Application: Star Wars: Knight Of The Old Republic</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(248, 249, 250); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Provide the EDID from customer's system (IGCC -&gt; Support -&gt; System Diagnostic -&gt; Generate Report)</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">EDID report requested from customer</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(233, 236, 239); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Step 3: Check for regression by testing with a driver that is 3 to 6 months old</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">Regression testing required</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(248, 249, 250); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Check for progression by testing the latest attestation driver</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">Progression testing with latest driver required</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(233, 236, 239); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Try to reproduce using latest generation if not reported in latest iGPU/dGPU</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">Latest generation testing required</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(248, 249, 250); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Step 4: Check on 3rd party graphic cards such as NVIDIA/AMD</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">3rd party GPU comparison required</td></tr><tr style="margin: 0px; padding: 0px;"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(233, 236, 239); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Check with different ports (HDMI/DP) on the same display panel</td><td class="data-cell" style="margin: 0px; padding: 12px; white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">Different port testing required</td></tr><tr style="margin: 0px; padding: 0px; background-color: rgb(241, 243, 244);"><td class="instruction-cell" style="margin: 0px; padding: 12px; background-color: rgb(248, 249, 250); color: rgb(44, 62, 80); border-color: rgb(221, 221, 221); vertical-align: top;">Check with different display panel from other display vendor</td><td class="data-cell" style="margin: 0px; padding: 12px; background-color: rgb(255, 255, 255); white-space-collapse: preserve-breaks; font-family: &quot;Courier New&quot;, monospace; font-size: 13px; border-color: rgb(221, 221, 221); vertical-align: top;">Different display panel testing required</td></tr></tbody></table><!--EndFragment--></h4></div>`,
-              "bug.reproducibility": "always_100%",
-              "bug.exposure": "2-high",
-              "ip_sw_graphics.bug.submitter_org": "ics.gfx",
-              "bug.env_found" : "silicon",
-              "component" : "ip.graphics_driver.unassigned",
-              "ip_sw_graphics.bug.gfx_driver_version" : "32.0.101.8247",
-              "ip_sw_graphics.bug.ics_owner": "amedinam",
-              // "ip_sw_graphics.bug.application_name": 'No Existo'
-
-
-              // ,
-              // "status": 'open',
-              // "component": 'graphics_driver_unassigned',  
-              // "bug.env_found": 'silicon',  
-              // "ip_sw_graphics.bug.how_found_category": 'user_experience',
-              // "ip_sw_graphics.bug.submitter_org": 'ics.gfx',
-              // "ip_sw_graphics.bug.reproducible_on_crb": 'did_not_try',
-              
-              // "priority": "p2-high",
-              // "bug.exposure": 'p2-high',
-              // "bug.platform": 'Battlemage Client GFX Platform',
-              // "problem_clasification": 'corruption',
-              // "team": 'debug.dgfx',
-              // "gfx_driver_version": '32.0.101.8247',
-              
-              // "reproducibility": 'always_100%',
-              // "to_reproduce": 'Launch Cyberpunk 2077, navigate to graphics settings, enable ray tracing, game crashes on startup',
-              // "application_name": 'Cyberpunk 2077',
-              // "contact_source": '3rd_Party_Community',
-              // "ics_owner": 'kgutier',
-              // "send_mail": 'true',
-              // "notify": 'kgutier@intel.com',
-              // "description": {  
-              //     'hw.gpu_model': 'Intel Arc A770',
-              //     'hw.system_memory': '32GB DDR4',
-              //     'hw.cpu_model': 'Intel Core i7-12700K'
-              // },
-              // "comments": `Customer reported issue through support ticket #12345. Issue reproducible on multiple systems with similar configuration. This ticket will be closed as it is only a test. Created at: ${new Date().toISOString()}`
-                        
-            }
-          ]
-        },  // Data body
+        "fieldValues": [ data ] 
+      }, // Data body
       {
         headers: {
           "Authorization": "Basic " + base64,
