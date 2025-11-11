@@ -971,14 +971,38 @@ app.post('/beta/call/', async (req, res) => {
 
 })
 
+app.get('/beta/hsdhistory/:id/rev/:r', async (req,res) =>{
+  let id = req.params.id;
+  let rev = req.params.r;
+  const base64 = Buffer.from(process.env.HSD_TOKEN).toString('base64');
+  const agent = new https.Agent({ rejectUnauthorized: false });  
+  let resp;
+  try {
+    resp = await axios.get("https://hsdes-api.intel.com/rest/auth/article/" + id + "/" + rev + "/changeset",
+      {
+        headers: {
+          "Authorization": "Basic " + base64,
+          "content-type": "application/json"
+        },
+        httpsAgent: agent 
+      }
+    );
+  }catch(err) {
+    console.log(err);
+    res.status(err.status).send(err.response.data.message);
+  }
+  res.json(resp.data.changeset)
+});
+
+
 app.get('/beta/hsdhistory/:id', async (req,res) =>{
 
   let id = req.params.id;
   const base64 = Buffer.from(process.env.HSD_TOKEN).toString('base64');
   const agent = new https.Agent({ rejectUnauthorized: false });
-
+  let resp;
   try{
-    let resp = await axios.get("https://hsdes-api.intel.com/rest/auth/article/" + id + "/history?fields=id%2Cip_sw_graphics.bug.team%2Cinternal_summary%2Cowner%2Ctitle%2Cstatus%2Cstatus_reason%2Cupdated_date%2Cupdated_by",
+    resp = await axios.get("https://hsdes-api.intel.com/rest/auth/article/" + id + "/history?fields=id%2Cip_sw_graphics.bug.team%2Cinternal_summary%2Cowner%2Ctitle%2Cstatus%2Cstatus_reason%2Cupdated_date%2Cupdated_by",
       {
         headers: {
           "Authorization": "Basic " + base64,
@@ -992,8 +1016,15 @@ app.get('/beta/hsdhistory/:id', async (req,res) =>{
     console.log(err);
     res.status(err.status).send(err.response.data.message);
   }
-  res.status(200).send('-fin');
+  res.render('hsdhistory', {
+      title: 'HSD History',
+      user: req.session.user,
+      timeline: resp.data
+  });
 });
+
+
+
 
 app.get('/beta/hsdpush', async (req, res) => {
   console.log("hello");

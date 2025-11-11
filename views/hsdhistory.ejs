@@ -1,0 +1,88 @@
+<!-- <div>
+    <pre><% JSON.stringify(timeline, null, 2)%></pre>
+</div> -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Log Timeline Visualizer</title>
+
+  <style>
+    .horizontal-timeline {
+      display: flex;
+      align-items: flex-end;
+      overflow-x: auto;
+      padding: 40px 10px 20px 10px;
+      background: #f6f8fa;
+    }
+    .timeline-step {
+      flex: 0 0 220px;
+      margin: 0 14px;
+      position: relative;
+      text-align: center;
+    }
+    .step-dot {
+      height: 20px;
+      width: 20px;
+      background: #3498db;
+      border-radius: 50%;
+      display: block;
+      margin: 0 auto 8px auto;
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 2px #3498db44;
+    }
+    .step-content {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 2px 0 #ccc2;
+      padding: 8px;
+      font-size: 0.98em;
+    }
+    .timeline-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 10px;
+      left: 100%;
+      width: 54px;
+      border-top: 2px solid #3498db99;
+      z-index: 0;
+    }
+    .step-date {
+      margin-bottom: 6px;
+      font-weight: bold;
+      color: #4267B2;
+    }
+  </style>
+</head>
+<body>
+    <div class="horizontal-timeline" id="timelineContainer"></div>
+
+    <script>
+    // Your JSON data (as above)
+    const data = <%- JSON.stringify(timeline.data) %>;
+
+    // Sort events by date (optional, for chronological order)
+    data.sort((a, b) => new Date(a.updated_date) - new Date(b.updated_date));
+
+    // Mapping JSON to HTML timeline
+    const container = document.getElementById('timelineContainer');
+    container.innerHTML = '';
+    data.forEach(event => {
+        container.innerHTML += `
+         <div class="timeline-step" title="">
+          <span class="step-dot"></span>
+          <div class="step-content">
+            <div class="step-date">${event.updated_date.split(' ')[0]}</div>
+            <div><strong>${event.status}</strong></div>
+            <div><em>${event.status_reason}</em></div>
+            <div>priority: ${event.priority}</div>
+            <div>REV: ${event.rev}</div>
+            <div>By: ${event.updated_by}</div>
+            <div>Owner: ${event.owner || '[none]'}</div>
+          </div>
+        </div>
+        `;
+    });
+    </script>
+</body>
+</html>
