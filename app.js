@@ -923,7 +923,7 @@ async function invokeModel2(from, prompt, content, case_num, heavy, testing=fals
   } catch (err) {
       console.log(err.response);
       console.log('[CASO '+ case_num +'] > [INVOKEMODEL] '+ from +' > ' +err);
-      return false
+      return "false"
   }
 }
 
