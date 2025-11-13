@@ -998,7 +998,7 @@ app.get('/beta/hsdhistory/:id', async (req,res) =>{
 app.post('/hsd/push', async (req, res) => {
   const base64 = Buffer.from(process.env.HSD_TOKEN).toString('base64');
   const agent = new https.Agent({ rejectUnauthorized: false });
-  const data = req.params.description; //`` 
+  const data = req.params.hsddata; //``Descripcion corresponde a un nombre establecido or mi, en este aso seria hsddata 
   try{
     let resp = await axios.post("https://hsdes-api.intel.com/rest/auth/article/",
       { 
