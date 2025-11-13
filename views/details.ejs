@@ -283,8 +283,52 @@
             <div class="tab-pane fade" style="padding: 10px;" id="article_helper" role="tabpanel" aria-labelledby="article-helper-tab">
                 <p>Coming soon!</p>
             </div>
+
+            <!--HSD Tabla Comienzo-->
             <div class="tab-pane fade" style="padding: 10px;" id="hsd_helper" role="tabpanel" aria-labelledby="hsd-helper-tab">
-                <p>Coming soon!</p>
+
+<!--Comienzo de template HSD-->
+                <div class="hsd-helper-container">
+                
+            
+                    <!-- Template output container (hidden until generated) -->
+                    <div id="hsdTemplateOutput">
+                    
+
+                        
+
+                        <!-- Template card with table -->
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 id="hsdTemplateTitle"></h5>
+                                <p class="mb-0" id="hsdTemplateDescription"></p>
+                            </div>
+                            <div class="card-body">
+                                <!-- Tip alert -->
+                                <div class="alert alert-warning" role="alert">
+                                    <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> Click on any data cell to edit. Changes are saved when you copy or save the template.
+                                </div>
+                                <!-- Template table -->
+                                <div class="table-responsive">
+                                    <table class="hsd-template-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Checklist Instructions</th>
+                                                <th>Information/Data</th>
+                                            </tr>
+                                        </thead>
+                                        <!-- Table body populated by JavaScript -->
+                                        <tbody id="hsdTemplateTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+
+<!--Final template HSD-->
+
             </div>
         </div>
     </div>
@@ -294,6 +338,45 @@
     </div>  -->
 </div>
 <script>
+
+//Function de render Agregada
+
+
+
+    function renderHsdTemplate(template) {
+        if (!template) return;
+
+        // Set title and description
+        document.getElementById('hsdTemplateTitle').textContent = template.title;
+        document.getElementById('hsdTemplateDescription').textContent = template.description;
+
+        const tbody = document.getElementById('hsdTemplateTableBody');
+        tbody.innerHTML = '';
+
+        // Create table rows for each template row
+        template.rows.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            const instructionTd = document.createElement('td');
+            const dataTd = document.createElement('td');
+
+            // Instruction cell (non-editable)
+            instructionTd.className = 'instruction-cell';
+            instructionTd.textContent = row.instruction;
+
+            // Data cell (editable)
+            dataTd.className = 'data-cell';
+            dataTd.style.whiteSpace = 'pre-wrap';
+            dataTd.textContent = row.data;
+            dataTd.dataset.rowIndex = index;
+            dataTd.contentEditable = 'true'; // Make editable by default
+
+            tr.appendChild(instructionTd);
+            tr.appendChild(dataTd);
+            tbody.appendChild(tr);
+        });
+    }
+
+
 
     function extractYouTubeVideoId(url) {
       const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
@@ -569,6 +652,64 @@
             listItem.appendChild(link);
             hsdLinksContainer.appendChild(listItem);
         });
+let [ssu, gpu, cpu, os, driver] = getinfo();
+
+let x= <%- JSON.stringify(data)%>;
+
+console.log (x.ai_analysis.cpu)
+
+let template={
+                title: "HSD ESCALATION CHECKLIST - DISPLAY ISSUES",
+                description: "Everything related to resolution, refresh rate, display interfaces, flickering, etc.",
+                rows: [
+                    {
+                        instruction: "Step 1: Filter - Check if issue is already reported to HSD ip_sw_graphics",
+                        data: `Checked HSD ip_sw_graphics for existing reports\nCase: GitHub #${hsdData.github_num}\nHSD: ${hsdData.hsd || 'N/A'}`
+                    },
+                    {
+                        instruction: "Step 2: Reproduce the issue (detail the driver version used)",
+                        data: `Driver Version: ${driver || 'N/A'}\nGPU: ${gpu || 'N/A'}\nOS: ${os || 'N/A'}`
+                    },
+                    {
+                        instruction: "Provide simplified repro steps with video/images when needed",
+                        data: (x.ai_analysis.steps_reproduce || []).map((step, i) => `${i + 1}. ${step}`).join('\n') || 'No reproduction steps available'
+                    },
+                    {
+                        instruction: "Provide System configuration/information such as SSU, DXdiag logs",
+                        data: `CPU: ${cpu || 'N/A'}\nPlatform: ${x.ai_analysis.platform || 'N/A'}\nApplication: ${x.ai_analysis.app_name || 'N/A'}`
+                    },
+                    {
+                        instruction: "Provide the EDID from customer's system (IGCC -> Support -> System Diagnostic -> Generate Report)",
+                        data: "EDID report requested from customer"
+                    },
+                    {
+                        instruction: "Step 3: Check for regression by testing with a driver that is 3 to 6 months old",
+                        data: "Regression testing required"
+                    },
+                    {
+                        instruction: "Check for progression by testing the latest attestation driver",
+                        data: "Progression testing with latest driver required"
+                    },
+                    {
+                        instruction: "Try to reproduce using latest generation if not reported in latest iGPU/dGPU",
+                        data: "Latest generation testing required"
+                    },
+                    {
+                        instruction: "Step 4: Check on 3rd party graphic cards such as NVIDIA/AMD",
+                        data: "3rd party GPU comparison required"
+                    },
+                    {
+                        instruction: "Check with different ports (HDMI/DP) on the same display panel",
+                        data: "Different port testing required"
+                    },
+                    {
+                        instruction: "Check with different display panel from other display vendor",
+                        data: "Different display panel testing required"
+                    }
+                ]
+            };
+
+
 
         const cancel_buttons =  document.querySelectorAll('.cancel-btn');  
         cancel_buttons.forEach(button => {
@@ -642,7 +783,7 @@
             title = 'Not applicable';
         }
 
-        let [ssu, gpu, cpu, os, driver] = getinfo();
+        
         if(!ssu){
             document.getElementById('ssu-found').style.display ='inline-block';
         }
@@ -655,6 +796,7 @@
         
         main.style.display = 'block';
         loadHSDs();
+        renderHsdTemplate(template);
     });
 </script>
 

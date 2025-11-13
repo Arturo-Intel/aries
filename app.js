@@ -800,6 +800,35 @@ app.get('/hsd/fetch/:text', async(req,res) => {
   res.json(bdata.data.data)
 });
 
+app.post('/hsd/push', async (req, res) => {
+  const base64 = Buffer.from(process.env.HSD_TOKEN).toString('base64');
+  const agent = new https.Agent({ rejectUnauthorized: false });
+  const data = req.params.hsddata; //``Descripcion corresponde a un nombre establecido or mi, en este aso seria hsddata 
+  try{
+    let resp = await axios.post("https://hsdes-api.intel.com/rest/auth/article/",
+      { 
+        "tenant": "ip_sw_graphics",
+        "subject": "bug",
+        "fieldValues": [ data ] 
+      }, // Data body
+      {
+        headers: {
+          "Authorization": "Basic " + base64,
+          "content-type": "application/json"
+        },
+        httpsAgent: agent 
+      }
+    );
+    console.log(resp);
+  }catch (err) {  
+    console.log(err);
+    res.status(err.status).send(err.response.data.message);
+  }
+  
+  res.status(200).send('-fin');
+
+});
+
 app.get('/old_test', async (req, res) => {
     res.render('test', {
         title: 'Test',
@@ -995,34 +1024,7 @@ app.get('/beta/hsdhistory/:id', async (req,res) =>{
   res.status(200).send('-fin');
 });
 
-app.post('/hsd/push', async (req, res) => {
-  const base64 = Buffer.from(process.env.HSD_TOKEN).toString('base64');
-  const agent = new https.Agent({ rejectUnauthorized: false });
-  const data = req.params.description; //`` 
-  try{
-    let resp = await axios.post("https://hsdes-api.intel.com/rest/auth/article/",
-      { 
-        "tenant": "ip_sw_graphics",
-        "subject": "bug",
-        "fieldValues": [ data ] 
-      }, // Data body
-      {
-        headers: {
-          "Authorization": "Basic " + base64,
-          "content-type": "application/json"
-        },
-        httpsAgent: agent 
-      }
-    );
-    console.log(resp);
-  }catch (err) {  
-    console.log(err);
-    res.status(err.status).send(err.response.data.message);
-  }
-  
-  res.status(200).send('-fin');
 
-});
 
 app.get('/beta', checkSession, async (req, res) => {
       res.render('beta', {
